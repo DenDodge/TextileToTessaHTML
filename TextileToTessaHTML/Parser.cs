@@ -136,6 +136,8 @@ namespace TextileToTessaHTML
 
         private static readonly string collapseTagTemplate = "{{collapse\\((.*?)\\)";
 
+        private static readonly string codeSection = "<code>.*?</code>";
+
 
         private static readonly Regex _headerOpenTag = new Regex(headerOpenTagTemplate,
            RegexOptions.Singleline | RegexOptions.Compiled);
@@ -151,6 +153,9 @@ namespace TextileToTessaHTML
 
         private static readonly Regex _collapseTag = new Regex(collapseTagTemplate,
             RegexOptions.Singleline | RegexOptions.Compiled);
+
+        private static readonly Regex _codeSection = new Regex(codeSection,
+           RegexOptions.Singleline | RegexOptions.Compiled);
 
         #endregion
 
@@ -186,12 +191,13 @@ namespace TextileToTessaHTML
             this.AttachmentsFiles = attachmentFiles;
             this.AttachmentsString = "";
 
-            var resultString = this.TextileParseString(mainString);
+            var resultString = this.TextileParseString(mainString, isTopicText);
             resultString = resultString.Replace("\"", "&#8220;");
             resultString = this.StandartHTMLParseString(
                 resultString,
                 issueDirectory,
                 isTopicText);
+            resultString = resultString.Replace("\n", TessaNewLineTag);
 
             return resultString;
         }
@@ -274,7 +280,7 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
         /// <returns>Преобразованная строка.</returns>
-        private string TextileParseString(string mainString)
+        private string TextileParseString(string mainString, bool isTopicText = false)
         {
             string resultString = mainString;
 
@@ -288,6 +294,14 @@ namespace TextileToTessaHTML
             resultString = resultString.Replace("@/code", "</code>");
             // преобразуем строку в стандартный HTML.
             resultString = TextileToHTML.TextileFormatter.FormatString(resultString);
+
+            // чтобы в сообщении нормально отображались блоки кода -
+            // удаляем лишние символы новой строки только при парсинге описания.
+            if (!isTopicText)
+            {
+                resultString = this.RemoveSumbolNewString(resultString);
+            }
+
             // подчищаем символ "&amp;", которые сгенирировался в процессе преобразования textile в HTML.
             resultString = resultString.Replace("&amp;", "&");
 
@@ -313,13 +327,6 @@ namespace TextileToTessaHTML
             foreach (var tag in TessaOpeningTags)
             {
                 resultString = this.ParseTag(resultString, tag);
-            }
-
-            // чтобы в сообщении нормально отображались блоки кода -
-            // удаляем лишние символы новой строки только при парсинге описания.
-            if (!isTopicText)
-            {
-                resultString = this.RemoveSumbolNewString(resultString);
             }
 
             // преобразуем тег <br /> в </p><p>.
@@ -406,6 +413,35 @@ namespace TextileToTessaHTML
             return resultString;
         }
 
+        private (MatchCollection matches, string resultString) RemoveCodeSection(string mainString)
+        {
+            string resultString = mainString;
+            (MatchCollection matches, string resultString) result = ( null, resultString );
+            if(this.TryGetMathes(mainString, _codeSection, out MatchCollection matches))
+            {
+                for(int i = matches.Count - 1; i >= 0; i--)
+                {
+                    resultString = resultString.Replace(matches[i].Value, $"@codeBloc{i}");
+                }
+                result.matches = matches;
+                result.resultString = resultString;
+            }
+
+            return result;
+        }
+
+        private string AddCodeSection(string mainString, MatchCollection matches)
+        {
+            string resultString = mainString;
+
+            for (int i = matches.Count - 1; i >= 0; i--)
+            {
+                resultString = resultString.Replace($"@codeBloc{i}", matches[i].Value);
+            }
+
+            return resultString;
+        }
+
         /// <summary>
         /// Преобзазовывает один символ "\" в два символа "\\".
         /// </summary>
@@ -423,15 +459,18 @@ namespace TextileToTessaHTML
         {
             string resultString = mainString;
 
-            // TODO: делаем не через Remove() т.к на "ничего" нельзя заменить.
-            //var symbolIndex = resultString.IndexOf('\n');
-            //while (symbolIndex != -1)
-            //{
-            //    resultString = resultString.Remove(symbolIndex, 1);
-            //    symbolIndex = resultString.IndexOf('\n');
-            //}
+            var result = this.RemoveCodeSection(mainString);
+            resultString = result.resultString;
 
-            resultString = resultString.Replace("\n", TessaNewLineTag);
+            //TODO: делаем не через Remove() т.к на "ничего" нельзя заменить.
+            var symbolIndex = resultString.IndexOf('\n');
+            while (symbolIndex != -1)
+            {
+                resultString = resultString.Remove(symbolIndex, 1);
+                symbolIndex = resultString.IndexOf('\n');
+            }
+
+            resultString = this.AddCodeSection(resultString, result.matches);
 
             return resultString;
         }
