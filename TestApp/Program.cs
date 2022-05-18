@@ -17,7 +17,7 @@ namespace TestApp
 
             string filesDirectory = $"D:\\WORK_SYNTELLECT\\OtherFiles\\Migration\\29906";
 
-            string testString ="Добрый день, коллеги! Вынужден эскалировать.\r\n\r\nПросьба возобновить исследование.Проблема с подписанием стала воспроизводиться у *третьего * заказчика(версия 3.5.12).\r\n\r\nСудя по симптомам, файлы(см.журнал из первичного сообщения) держит приложение TessaHost: после перезапуска TessaClient перезапускается и TessaHost и файлы подписываются без ошибок.\r\n\r\nТа же ситуация с проверкой: подпись на сервере корректная. У клиента при проверке возникает ошибка:\r\n!photo_2021-10-05_11-52-45.jpg!";
+            string testString = "This can occur in situations that raise exceptions such as passing a file name with invalid characters or too many characters, a failing or missing disk, or if the *caller does not have permission to read the file*.\r\n\r\nhttps://docs.microsoft.com/en-us/dotnet/api/system.io.file.exists?view=net-5.0\r\n\r\nТаким образом, если в процессе TessaHost действительно нет прав на чтение файла, как и выводится в предварительной ошибке, то да, TessaHost ругается именно исключением с указанным текстом.\r\n\r\n> Судя по логам, данной ошибке обычно предшествует предупреждение вида: The process cannot access the file 'C:\\Users\\yavorskiy\\AppData\\Local\\Temp\\Tessa\\Files\\2xwyn2mg.n3r\\eds-sign.bin' because it is being used by another process.\r\n\r\nhttps://link\r\n\r\n";
             Parser parser = new Parser();
             var result = parser.GetParseToTessaHTMLString(testString, filesDirectory, attachemntsIds, false);
         }

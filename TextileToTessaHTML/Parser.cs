@@ -131,30 +131,57 @@ namespace TextileToTessaHTML
         /// Шаблон регулярного выражения для тега изображения.
         /// </summary>
         private static readonly string imagesTagTemplate = "<img src=\"(.*?)\" .*? />";
-
+        /// <summary>
+        /// Шаблон регулярного выражения для секции кода с "pre".
+        /// </summary>
         private static readonly string preCodeTagsTemplate = "<pre><code .*?>";
-
+        /// <summary>
+        /// Шаблон регулярного выражения для сворачиваемой секции.
+        /// </summary>
         private static readonly string collapseTagTemplate = "{{collapse\\((.*?)\\)";
+        /// <summary>
+        /// Шаблон регулярного выражения для секции кода.
+        /// </summary>
+        private static readonly string codeSectionTemplate = "<code>.*?</code>";
+        /// <summary>
+        /// Шаблон регулярного выражения для ссылки.
+        /// </summary>
+        private static readonly string httpLinkTemplate = "<span>(http.*?)</span>";
 
-        private static readonly string codeSection = "<code>.*?</code>";
-
-
+        /// <summary>
+        /// Регулярное выражение для секции открытия тега заголовка.
+        /// </summary>
         private static readonly Regex _headerOpenTag = new Regex(headerOpenTagTemplate,
            RegexOptions.Singleline | RegexOptions.Compiled);
-
+        /// <summary>
+        /// Регулярное выражения для секции закрытия тега заголовка.
+        /// </summary>
         private static readonly Regex _headerCloseTag = new Regex(headerCloseTagTemplate,
            RegexOptions.Singleline | RegexOptions.Compiled);
-
+        /// <summary>
+        /// Регулярное выражение для секции тега изображения.
+        /// </summary>
         private static readonly Regex _imagesTag = new Regex(imagesTagTemplate,
             RegexOptions.Singleline | RegexOptions.Compiled);
-
+        /// <summary>
+        /// Регулярное выражение для секции кода с "pre".
+        /// </summary>
         private static readonly Regex _preCodeTag = new Regex(preCodeTagsTemplate,
             RegexOptions.Singleline | RegexOptions.Compiled);
-
+        /// <summary>
+        /// Регулярное выражение для сворачиваемой секции.
+        /// </summary>
         private static readonly Regex _collapseTag = new Regex(collapseTagTemplate,
             RegexOptions.Singleline | RegexOptions.Compiled);
-
-        private static readonly Regex _codeSection = new Regex(codeSection,
+        /// <summary>
+        /// Регулярное выражение для секции кода.
+        /// </summary>
+        private static readonly Regex _codeSection = new Regex(codeSectionTemplate,
+           RegexOptions.Singleline | RegexOptions.Compiled);
+        /// <summary>
+        /// Регулярное выражение для ссылки.
+        /// </summary>
+        private static readonly Regex _httpLink = new Regex(httpLinkTemplate,
            RegexOptions.Singleline | RegexOptions.Compiled);
 
         #endregion
@@ -351,6 +378,8 @@ namespace TextileToTessaHTML
             {
                 resultString = this.RemoveSlachSyblol(resultString);
             }
+
+            resultString = this.ParsingHttpLink(resultString);
 
             // установка начала и конца строки.
             resultString = this.SetPreAndPostString(resultString, isTopicText);
@@ -748,6 +777,36 @@ namespace TextileToTessaHTML
             resultString += postString;
 
             return resultString;
+        }
+
+        /// <summary>
+        /// Обработка ссылок.
+        /// </summary>
+        /// <param name="mainString"></param>
+        /// <returns></returns>
+        private string ParsingHttpLink(string mainString)
+        {
+            string resultString = mainString;
+
+            if (this.TryGetMathes(resultString, _httpLink, out MatchCollection matches))
+            {
+                foreach (Match match in matches)
+                {
+                    resultString = resultString.Replace(match.Value, this.GenerateLinkSection(match.Groups[1].Value));
+                }
+            }
+
+            return resultString;
+        }
+
+        /// <summary>
+        /// Генерирование разметки для ссылки.
+        /// </summary>
+        /// <param name="link"></param>
+        /// <returns></returns>
+        private string GenerateLinkSection(string link)
+        {
+            return $"<a data-custom-href=\"{link}\" href=\"{link}\" class=\"forum-url\"><span>{link}</span></a>";
         }
 
         #endregion
