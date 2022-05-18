@@ -130,7 +130,7 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Шаблон регулярного выражения для тега изображения.
         /// </summary>
-        private static readonly string imagesTagTemplate = "<img src=\"(.*?)\" alt=\"\" />";
+        private static readonly string imagesTagTemplate = "<img src=\"(.*?)\" .*? />";
 
         private static readonly string preCodeTagsTemplate = "<pre><code .*?>";
 
@@ -146,7 +146,7 @@ namespace TextileToTessaHTML
            RegexOptions.Singleline | RegexOptions.Compiled);
 
         private static readonly Regex _imagesTag = new Regex(imagesTagTemplate,
-            RegexOptions.Multiline);
+            RegexOptions.Singleline | RegexOptions.Compiled);
 
         private static readonly Regex _preCodeTag = new Regex(preCodeTagsTemplate,
             RegexOptions.Singleline | RegexOptions.Compiled);
@@ -192,7 +192,7 @@ namespace TextileToTessaHTML
             this.AttachmentsString = "";
 
             var resultString = this.TextileParseString(mainString, isTopicText);
-            resultString = resultString.Replace("\"", "&#8220;");
+            //TODO: resultString = resultString.Replace("\"", "&#8220;");
             resultString = this.StandartHTMLParseString(
                 resultString,
                 issueDirectory,
@@ -396,6 +396,12 @@ namespace TextileToTessaHTML
             return resultString;
         }
 
+        /// <summary>
+        /// Преобразование сворачивающейся секции кода.
+        /// В TessaHTML нет сворачивающейся секции. 
+        /// </summary>
+        /// <param name="mainString"></param>
+        /// <returns></returns>
         private string ParseCollapseTags(string mainString)
         {
             string resultString = mainString;
@@ -413,6 +419,11 @@ namespace TextileToTessaHTML
             return resultString;
         }
 
+        /// <summary>
+        /// Генерирует заглушки секций кода.
+        /// </summary>
+        /// <param name="mainString">Строка для преобразования.</param>
+        /// <returns>Шаблоны и результирующую строку для преобразования в секции кода.</returns>
         private (MatchCollection matches, string resultString) RemoveCodeSection(string mainString)
         {
             string resultString = mainString;
@@ -430,8 +441,19 @@ namespace TextileToTessaHTML
             return result;
         }
 
+        /// <summary>
+        /// Заменяет заглушки секций кода на код.
+        /// </summary>
+        /// <param name="mainString">Строка для преобразованя.</param>
+        /// <param name="matches">Шаблоны секций кода.</param>
+        /// <returns></returns>
         private string AddCodeSection(string mainString, MatchCollection matches)
         {
+            if (matches == null)
+            {
+                return mainString;
+            }
+
             string resultString = mainString;
 
             for (int i = matches.Count - 1; i >= 0; i--)
@@ -565,13 +587,14 @@ namespace TextileToTessaHTML
                 return resultString;
             }
             string fileName = matchImages.Groups[1].Value;
-            var fileDirectory = $"{issueDirectory}\\{fileName}";
+            // TODO: т.к файлы с id перед наименованием - получаем путь к файлы с помощью Directory.
+            var fileDirectory = Directory.GetFiles(issueDirectory, $"*_{fileName}");
             if (!isTopicText)
             {
                 this.GenerateAttachemntsString(fileName);
             }
 
-            return this.ParseAttachmentImage(mainString, fileDirectory, fileName, matchImages);
+            return this.ParseAttachmentImage(mainString, fileDirectory[0], fileName, matchImages);
         }
 
         /// <summary>
@@ -603,7 +626,7 @@ namespace TextileToTessaHTML
         /// Преобразуем строку с прикрепленными изображениями.
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
-        /// <param name="fileDirectory">Расоложение файла.</param>
+        /// <param name="fileDirectory">Расположение файла.</param>
         /// <param name="fileName">Имя файла.</param>
         /// <param name="match">Совпадение с шаблоном регулярного выражения.</param>
         /// <returns>Преобразованная строка.</returns>
