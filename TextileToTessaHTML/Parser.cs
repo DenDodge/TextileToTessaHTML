@@ -146,7 +146,7 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Шаблон регулярного выражения для ссылки.
         /// </summary>
-        private static readonly string httpLinkTemplate = "<span>(http.*?)</span>";
+        private static readonly string httpLinkTemplate = "(http.*?)[ ,<]";
 
         /// <summary>
         /// Регулярное выражение для секции открытия тега заголовка.
@@ -219,7 +219,10 @@ namespace TextileToTessaHTML
             this.AttachmentsString = "";
 
             var resultString = this.TextileParseString(mainString, isTopicText);
-            //TODO: resultString = resultString.Replace("\"", "&#8220;");
+            if (!isTopicText)
+            {
+                resultString = resultString.Replace("\"", "&#8220;");
+            }
             resultString = this.StandartHTMLParseString(
                 resultString,
                 issueDirectory,
@@ -379,7 +382,7 @@ namespace TextileToTessaHTML
                 resultString = this.RemoveSlachSyblol(resultString);
             }
 
-            resultString = this.ParsingHttpLink(resultString);
+            resultString = this.ParsingHttpLink(resultString, isTopicText);
 
             // установка начала и конца строки.
             resultString = this.SetPreAndPostString(resultString, isTopicText);
@@ -784,7 +787,7 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="mainString"></param>
         /// <returns></returns>
-        private string ParsingHttpLink(string mainString)
+        private string ParsingHttpLink(string mainString, bool isTopicText)
         {
             string resultString = mainString;
 
@@ -792,7 +795,9 @@ namespace TextileToTessaHTML
             {
                 foreach (Match match in matches)
                 {
-                    resultString = resultString.Replace(match.Value, this.GenerateLinkSection(match.Groups[1].Value));
+                    var matchValue = match.Value.Remove(match.Value.Length - 1, 1);
+                    var groupValue = match.Groups[1].Value.Replace("&", "&amp;");
+                    resultString = resultString.Replace(matchValue, this.GenerateLinkSection(groupValue, isTopicText));
                 }
             }
 
@@ -804,9 +809,13 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="link"></param>
         /// <returns></returns>
-        private string GenerateLinkSection(string link)
+        private string GenerateLinkSection(string link, bool isTopicText)
         {
-            return $"<a data-custom-href=\"{link}\" href=\"{link}\" class=\"forum-url\"><span>{link}</span></a>";
+            if(!isTopicText)
+            {
+                return $"</span><a data-custom-href=\\\"{link}\\\" href=\\\"{link}\\\" class=\\\"forum-url\\\"><span>{link}</span></a><span>";
+            }
+            return $"</span><a data-custom-href=\"{link}\" href=\"{link}\" class=\"forum-url\"><span>{link}</span></a><span>";
         }
 
         #endregion

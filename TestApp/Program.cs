@@ -17,9 +17,9 @@ namespace TestApp
 
             string filesDirectory = $"D:\\WORK_SYNTELLECT\\OtherFiles\\Migration\\29906";
 
-            string testString = "This can occur in situations that raise exceptions such as passing a file name with invalid characters or too many characters, a failing or missing disk, or if the *caller does not have permission to read the file*.\r\n\r\nhttps://docs.microsoft.com/en-us/dotnet/api/system.io.file.exists?view=net-5.0\r\n\r\nТаким образом, если в процессе TessaHost действительно нет прав на чтение файла, как и выводится в предварительной ошибке, то да, TessaHost ругается именно исключением с указанным текстом.\r\n\r\n> Судя по логам, данной ошибке обычно предшествует предупреждение вида: The process cannot access the file 'C:\\Users\\yavorskiy\\AppData\\Local\\Temp\\Tessa\\Files\\2xwyn2mg.n3r\\eds-sign.bin' because it is being used by another process.\r\n\r\nhttps://link\r\n\r\n";
+            string testString = "Предположила, т.к. время совпало. А с чем связаны?\r\n\r\nhttps://support.syntellect.ru/issues/1096 - эта доработка не могла вызвать эти падения?";
             Parser parser = new Parser();
-            var result = parser.GetParseToTessaHTMLString(testString, filesDirectory, attachemntsIds, false);
+            var result = parser.GetParseToTessaHTMLString(testString, filesDirectory, attachemntsIds, true);
         }
     }
 }
