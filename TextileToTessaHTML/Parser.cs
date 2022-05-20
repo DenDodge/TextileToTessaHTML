@@ -325,12 +325,7 @@ namespace TextileToTessaHTML
             // преобразуем строку в стандартный HTML.
             resultString = TextileToHTML.TextileFormatter.FormatString(resultString);
 
-            // чтобы в сообщении нормально отображались блоки кода -
-            // удаляем лишние символы новой строки только при парсинге описания.
-            if (!isTopicText)
-            {
-                resultString = this.RemoveSumbolNewString(resultString);
-            }
+            resultString = this.RemoveSumbolNewString(resultString);
 
             // подчищаем символ "&amp;", которые сгенирировался в процессе преобразования textile в HTML.
             resultString = resultString.Replace("&amp;", "&");
