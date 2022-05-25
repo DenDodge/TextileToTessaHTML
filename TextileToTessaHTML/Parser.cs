@@ -55,6 +55,7 @@ namespace TextileToTessaHTML
         private readonly string ParagraphTagName = "ParagraphTag";
         private readonly string PreTagName = "PreTag";
         private readonly string CodeTagName = "CodeTag";
+        private readonly string CitationTagName = "CitationTag";
 
         #endregion
 
@@ -75,6 +76,7 @@ namespace TextileToTessaHTML
         private readonly string StandartParagraphTag = "<p>";
         private readonly string StandartPreTag = "<pre>";
         private readonly string StandartCodeTag = "<code>";
+        private readonly string StandartCitationTag = "<citation>";
 
         private readonly string StandartBoldItalicClosedTag = "</strong></em>";
         private readonly string StandartBoldClosedTag = "</strong>";
@@ -87,6 +89,7 @@ namespace TextileToTessaHTML
         private readonly string StandartParagraptClosedTag = "</p>";
         private readonly string StandartPreClosedTag = "</pre>";
         private readonly string StandartCodeClosedTag = "</code>";
+        private readonly string StandartCitationCloseTag = "</citation>";
 
         private string StandartNewLineTag = "<br />";
 
@@ -104,10 +107,12 @@ namespace TextileToTessaHTML
         private readonly string TessaListItemTag = "<li><p><span>";
         private readonly string TessaParagraphTag = "<p><span>";
         private readonly string TessaPreTag = "<div class=\\\"forum-block-monospace\\\"><p><span>";
+        private readonly string TessaCitationTag = "<div class=\"forum-div\"><div style=\"background-color: rgba(177, 193, 231, 1)\" class=\"forum-block\"><p><span>";
 
         private readonly string TessaListItemClosedTag = "</span></p></li>";
         private readonly string TessaParagraphClosedTag = "</span></p>";
         private readonly string TessaPreCloseTag = "</span></p></div>";
+        private readonly string TessaCitationCloseTag = "</span></p></div></div>";
 
         private readonly string TessaNewLineTag = "</span></p><p><span>";
 
@@ -147,6 +152,10 @@ namespace TextileToTessaHTML
         /// Шаблон регулярного выражения для ссылки.
         /// </summary>
         private static readonly string httpLinkTemplate = "(http.*?)[ ,<]";
+        /// <summary>
+        /// Шаблон регулярного выражения для цитирования.
+        /// </summary>
+        private static readonly string citationTemplates = "&gt; (.*?)\\r\\n";
 
         /// <summary>
         /// Регулярное выражение для секции открытия тега заголовка.
@@ -182,6 +191,12 @@ namespace TextileToTessaHTML
         /// Регулярное выражение для ссылки.
         /// </summary>
         private static readonly Regex _httpLink = new Regex(httpLinkTemplate,
+           RegexOptions.Singleline | RegexOptions.Compiled);
+
+        /// <summary>
+        /// Регулярное выражение для цитаты.
+        /// </summary>
+        private static readonly Regex _citation = new Regex(citationTemplates,
            RegexOptions.Singleline | RegexOptions.Compiled);
 
         #endregion
@@ -256,6 +271,7 @@ namespace TextileToTessaHTML
             StandartOpeningTags.Add(ListItemTagName, StandartListItemTag);
             StandartOpeningTags.Add(PreTagName, StandartPreTag);
             StandartOpeningTags.Add(CodeTagName, StandartCodeTag);
+            StandartOpeningTags.Add(CitationTagName, StandartCitationTag);
 
             StandartClosingTags.Add(ParagraphTagName, StandartParagraptClosedTag);
             StandartClosingTags.Add(BoldItalicTagName, StandartBoldItalicClosedTag);
@@ -268,6 +284,7 @@ namespace TextileToTessaHTML
             StandartClosingTags.Add(ListItemTagName, StandartListItemClosedTag);
             StandartClosingTags.Add(PreTagName, StandartPreClosedTag);
             StandartClosingTags.Add(CodeTagName, StandartCodeClosedTag);
+            StandartClosingTags.Add(CitationTagName, StandartCitationCloseTag);
         }
 
         /// <summary>
@@ -289,6 +306,7 @@ namespace TextileToTessaHTML
             TessaOpeningTags.Add(ListItemTagName, TessaListItemTag);
             TessaOpeningTags.Add(PreTagName, TessaPreTag);
             TessaOpeningTags.Add(CodeTagName, TessaPreTag);
+            TessaOpeningTags.Add(CitationTagName, TessaCitationTag);
 
             TessaClosingTags.Add(ParagraphTagName, TessaParagraphClosedTag);
             TessaClosingTags.Add(BoldItalicTagName, SpanClosedTag);
@@ -301,6 +319,7 @@ namespace TextileToTessaHTML
             TessaClosingTags.Add(ListItemTagName, TessaListItemClosedTag);
             TessaClosingTags.Add(PreTagName, TessaPreCloseTag);
             TessaClosingTags.Add(CodeTagName, TessaPreCloseTag);
+            TessaClosingTags.Add(CitationTagName, TessaCitationCloseTag);
         }
 
         #endregion
@@ -314,14 +333,18 @@ namespace TextileToTessaHTML
         {
             string resultString = mainString;
 
-            resultString = this.ParsePreCodeTasg(resultString);
+            // инлайн код блоки превращаем в жирный текст.
+            resultString = this.ParseInlineTags(resultString);
+            // все блоки кода приводим к единому егу "@code" и "/@code".
+            resultString = this.ParsePreCodeTags(resultString);
             resultString = this.ParseCollapseTags(resultString);
             // преобразуем символы "<" и ">" в символы "&lt;" и "&gt;".
             resultString = resultString.Replace("<", @"&lt;");
             resultString = resultString.Replace(">", @"&gt;");
-            // преобразуем собсвенные в теги <code>.
+            // преобразуем собсвенные теги кода в теги <code>.
             resultString = resultString.Replace("@code", "<code>");
             resultString = resultString.Replace("@/code", "</code>");
+            resultString = this.ParseCitationSection(resultString);
             // преобразуем строку в стандартный HTML.
             resultString = TextileToHTML.TextileFormatter.FormatString(resultString);
 
@@ -341,7 +364,7 @@ namespace TextileToTessaHTML
         /// <param name="isTopicText">Это сообщение топика.</param>
         /// <returns>Преобразованная строка.</returns>
         private string StandartHTMLParseString(
-            string mainString, 
+            string mainString,
             string issueDirectory,
             bool isTopicText = false)
         {
@@ -408,7 +431,7 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
         /// <returns>Преобразованная строка.</returns>
-        private string ParsePreCodeTasg(string mainString)
+        private string ParsePreCodeTags(string mainString)
         {
             string resultString = mainString;
             // для корректного преобразования символов сравнения используем собственные теги.
@@ -419,6 +442,20 @@ namespace TextileToTessaHTML
             resultString = resultString.Replace("</code></pre>", "@/code");
             resultString = resultString.Replace("<pre>", "@code");
             resultString = resultString.Replace("</pre>", "@/code");
+
+            return resultString;
+        }
+
+        /// <summary>
+        /// Преобразование выделения инлайн блока в выделение жирным.
+        /// </summary>
+        /// <param name="mainString">Строка для преобразования.</param>
+        /// <returns>Преобразованная строка.</returns>
+        private string ParseInlineTags(string mainString)
+        {
+            string resultString = mainString;
+
+            resultString = resultString.Replace("@", "*");
 
             return resultString;
         }
@@ -435,7 +472,7 @@ namespace TextileToTessaHTML
 
             while (this.TryGetMathes(resultString, _collapseTag, out MatchCollection matches))
             {
-                foreach(Match match in matches)
+                foreach (Match match in matches)
                 {
                     resultString = resultString.Replace(match.Value, match.Groups[1].Value);
                 }
@@ -454,10 +491,10 @@ namespace TextileToTessaHTML
         private (MatchCollection matches, string resultString) RemoveCodeSection(string mainString)
         {
             string resultString = mainString;
-            (MatchCollection matches, string resultString) result = ( null, resultString );
-            if(this.TryGetMathes(mainString, _codeSection, out MatchCollection matches))
+            (MatchCollection matches, string resultString) result = (null, resultString);
+            if (this.TryGetMathes(mainString, _codeSection, out MatchCollection matches))
             {
-                for(int i = matches.Count - 1; i >= 0; i--)
+                for (int i = matches.Count - 1; i >= 0; i--)
                 {
                     resultString = resultString.Replace(matches[i].Value, $"@codeBloc{i}");
                 }
@@ -466,6 +503,21 @@ namespace TextileToTessaHTML
             }
 
             return result;
+        }
+
+        private string ParseCitationSection(string mainString)
+        {
+            string resultString = mainString;
+
+            if (this.TryGetMathes(mainString, _citation, out MatchCollection matches))
+            {
+                foreach (Match match in matches)
+                {
+                    resultString = resultString.Replace(match.Value, $"<citation>{match.Groups[1].Value}</citation>");
+                }
+            }
+
+            return resultString;
         }
 
         /// <summary>
@@ -586,7 +638,7 @@ namespace TextileToTessaHTML
         /// <returns>Истина - удалось получить.</returns>
         private bool TryGetMathes(
             string mainString,
-            Regex _regex, 
+            Regex _regex,
             out MatchCollection matchCollection)
         {
             matchCollection = _regex.Matches(mainString);
@@ -806,7 +858,7 @@ namespace TextileToTessaHTML
         /// <returns></returns>
         private string GenerateLinkSection(string link, bool isTopicText)
         {
-            if(!isTopicText)
+            if (!isTopicText)
             {
                 return $"</span><a data-custom-href=\\\"{link}\\\" href=\\\"{link}\\\" class=\\\"forum-url\\\"><span>{link}</span></a><span>";
             }
