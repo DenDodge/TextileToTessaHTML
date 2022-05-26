@@ -17,11 +17,7 @@ namespace TestApp
 
             string filesDirectory = $"D:\\WORK_SYNTELLECT\\OtherFiles\\Migration\\29906";
 
-            string testString = "Syntellect wrote:\r\n> Задания с вариантами завершения Отозвать и Вернуть документ на доработку будут исключены из отчетов по завершенным заданиям в будущих версиях Tessa.\r\n\r\nДобрый день!\r\nПодскажите, пожалуйста, по данному пункту пока нет планового срока?"
-
-+"> Но почему - то при загрузке сохраненного документа, фильтрация по группе не работает. Оба файловых контрола отображают все файлы в кучу.\r\n\r\nПотому что событие ContainerFileAdding, как можно догадаться, работает при добавлении файлов.После сохранения карточки файлы уже добавлены. И их надо отдельным проходом по списку файлов удалить.\r\n\r\nВ расширении @CarUIExtension.Initialized@ есть пример работы с несколькими файловыми контролами.\r\n\r\n<pre> < code class=\"java\">\r\nIFileControl imagesFilesControl = ((FileListViewModel)context.Model.Controls[\"ImageFilesControl\"]).FileControl;\r\nforeach (IFile file in imagesFilesControl.Files.ToArray())\r\n{\r\n    // разрешены только файлы с категорией \"Изображения\"\r\n    if (file.Category == null || file.Category.Caption != \"Image\")\r\n    {\r\n        imagesFilesControl.Files.Remove(file);\r\n    }\r\n}\r\n</code></pre>"
-
-+"Syntellect писал(а):\r\n> Добрый день,\r\n> В настоящий момент я немного занят доработкой решения Архив ЦБ.В середине недели смогу приступить к указанной выше доработке.\r\n\r\nПрошу сильно не оттягивать решение вопроса - на контроле у \"Самого высокого\" руководителя. Разработка по Архиву ЦБ длительная - её на 1-2 дня можно подвинуть. ";
+            string testString = "Константин, добрый день.\r\n\r\nОшибка с расчетом количества заданий в отчетах будет исправлена в следующей версии Tessa (2.6).\r\n\r\nЗадания с вариантами завершения Отозвать и Вернуть документ на доработку будут исключены из отчетов по завершенным заданиям в будущих версиях Tessa.";
             Parser parser = new Parser();
             var result = parser.GetParseToTessaHTMLString(testString, filesDirectory, attachemntsIds, true);
         }

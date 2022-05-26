@@ -18,6 +18,11 @@ namespace TextileToTessaHTML
         private string AttachmentsString;
 
         /// <summary>
+        /// Прикрепленные к сообщению файлы.
+        /// </summary>
+        private List<string> AttachedFileString = new List<string>();
+
+        /// <summary>
         /// Открытие тегов стандартного HTML.
         /// </summary>
         private Dictionary<string, string> StandartOpeningTags = new Dictionary<string, string>();
@@ -40,7 +45,7 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Список прикрепленных файлов.
         /// </summary>
-        private Dictionary<string, Guid> AttachmentsFiles = new Dictionary<string, Guid>();
+        private Dictionary<string, Guid> AttachedFilesIssue = new Dictionary<string, Guid>();
 
         #region Tags Names
 
@@ -217,20 +222,20 @@ namespace TextileToTessaHTML
         #endregion
 
         /// <summary>
-        /// Получить преобразованную из "Textile" в "платформенные HTML" строку.
+        /// Получить преобразованную из "Textile" в "платформенные HTML" строку и список имен прикреаленных к этой строке файлов.
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
         /// <param name="issueDirectory">Расположение объекта "Инцидент" из редмайна.</param>
-        /// <param name="attachmentFiles">Прикрепленные к инциденту файлы.</param>
-        /// <param name="isTopicText">Это сообщение топика.</param>
-        /// <returns>Преобразованная строка.</returns>
-        public string GetParseToTessaHTMLString(
+        /// <param name="attachedFileIssue">Прикрепленные к инциденту файлы.</param>
+        /// <param name="isTopicText">Истина - это сообщение топика.</param>
+        /// <returns>Преобразованная строка и список имен прикреаленных к этой строке файлов.</returns>
+        public (string resultStrig, List<string> attachedFileString) GetParseToTessaHTMLString(
             string mainString,
             string issueDirectory,
-            Dictionary<string, Guid> attachmentFiles,
+            Dictionary<string, Guid> attachedFileIssue,
             bool isTopicText = false)
         {
-            this.AttachmentsFiles = attachmentFiles;
+            this.AttachedFilesIssue = attachedFileIssue;
             this.AttachmentsString = "";
 
             var resultString = this.TextileParseString(mainString, isTopicText);
@@ -244,7 +249,7 @@ namespace TextileToTessaHTML
                 isTopicText);
             resultString = resultString.Replace("\n", TessaNewLineTag);
 
-            return resultString;
+            return (resultString, this.AttachedFileString);
         }
 
         #region Private methods
@@ -328,6 +333,7 @@ namespace TextileToTessaHTML
         /// Преобразование исходной строки в стандартый HTML формат.
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
+        /// <param name="isTopicText">Истина - преобразование в сообщениях.</param>
         /// <returns>Преобразованная строка.</returns>
         private string TextileParseString(string mainString, bool isTopicText = false)
         {
@@ -390,9 +396,10 @@ namespace TextileToTessaHTML
             // преобразуем заголовки.
             resultString = this.ParseHeaderString(resultString);
 
+            this.AttachedFileString.Clear();
             while (this.TryGetMathes(resultString, _imagesTag, out MatchCollection matches))
             {
-                resultString = this.ParseAttachmentsImages(resultString, matches[0], issueDirectory, isTopicText);
+                resultString = this.ParseAttachmentImages(resultString, matches[0], issueDirectory, isTopicText);
             }
 
             if (isTopicText)
@@ -505,6 +512,11 @@ namespace TextileToTessaHTML
             return result;
         }
 
+        /// <summary>
+        /// Завернуть цитаты в блоки.
+        /// </summary>
+        /// <param name="mainString">Строка для преобразования.</param>
+        /// <returns>Преобразованная строка.</returns>
         private string ParseCitationSection(string mainString)
         {
             string resultString = mainString;
@@ -559,9 +571,9 @@ namespace TextileToTessaHTML
         private string RemoveSumbolNewString(string mainString)
         {
             string resultString = mainString;
+            MatchCollection matches;
 
-            var result = this.RemoveCodeSection(mainString);
-            resultString = result.resultString;
+            (matches, resultString) = this.RemoveCodeSection(mainString);
 
             //TODO: делаем не через Remove() т.к на "ничего" нельзя заменить.
             var symbolIndex = resultString.IndexOf('\n');
@@ -571,7 +583,7 @@ namespace TextileToTessaHTML
                 symbolIndex = resultString.IndexOf('\n');
             }
 
-            resultString = this.AddCodeSection(resultString, result.matches);
+            resultString = this.AddCodeSection(resultString, matches);
 
             return resultString;
         }
@@ -653,7 +665,7 @@ namespace TextileToTessaHTML
         /// Преобразование строк с прикрепленными изображениями.
         /// </summary>
         /// <param name="matchImages">Совпадение с шаблоном регулярного выражения.</param>
-        private string ParseAttachmentsImages(
+        private string ParseAttachmentImages(
             string mainString,
             Match matchImages,
             string issueDirectory,
@@ -666,6 +678,7 @@ namespace TextileToTessaHTML
                 return resultString;
             }
             string fileName = matchImages.Groups[1].Value;
+            this.AttachedFileString.Add(fileName);
             // TODO: т.к файлы с id перед наименованием - получаем путь к файлы с помощью Directory.
             var fileDirectory = Directory.GetFiles(issueDirectory, $"*_{fileName}");
             if (!isTopicText)
@@ -673,7 +686,7 @@ namespace TextileToTessaHTML
                 this.GenerateAttachemntsString(fileName);
             }
 
-            return this.ParseAttachmentImage(mainString, fileDirectory[0], fileName, matchImages);
+            return this.ParseAttachments(mainString, fileDirectory[0], fileName, matchImages);
         }
 
         /// <summary>
@@ -682,7 +695,7 @@ namespace TextileToTessaHTML
         /// <param name="fileName">Имя файла.</param>
         private void GenerateAttachemntsString(string fileName)
         {
-            var id = this.AttachmentsFiles[fileName];
+            var id = this.AttachedFilesIssue[fileName];
             var caption = id.ToString().Replace("-", "");
             var uri = $"https:\\\\{caption}";
 
@@ -709,7 +722,7 @@ namespace TextileToTessaHTML
         /// <param name="fileName">Имя файла.</param>
         /// <param name="match">Совпадение с шаблоном регулярного выражения.</param>
         /// <returns>Преобразованная строка.</returns>
-        private string ParseAttachmentImage(
+        private string ParseAttachments(
             string mainString,
             string fileDirectory,
             string fileName,
@@ -717,7 +730,7 @@ namespace TextileToTessaHTML
         {
             string resultString = mainString;
 
-            var id = this.AttachmentsFiles[fileName];
+            var id = this.AttachedFilesIssue[fileName];
             var caption = id.ToString().Replace("-", "");
             var mainImage = Image.FromFile(fileDirectory);
             var resizeImage = this.ResizeImage(mainImage, (int)(mainImage.Width * 0.3), (int)(mainImage.Height * 0.3));
