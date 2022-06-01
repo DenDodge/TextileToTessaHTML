@@ -144,7 +144,7 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Шаблон регулярного выражения для секции кода с "pre".
         /// </summary>
-        private static readonly string preCodeTagsTemplate = "<pre><code .*?>";
+        private static readonly string preCodeTagsTemplate = "<pre><code.*?>";
         /// <summary>
         /// Шаблон регулярного выражения для сворачиваемой секции.
         /// </summary>
@@ -229,7 +229,7 @@ namespace TextileToTessaHTML
         /// <param name="attachedFileIssue">Прикрепленные к инциденту файлы.</param>
         /// <param name="isTopicText">Истина - это сообщение топика.</param>
         /// <returns>Преобразованная строка и список имен прикреаленных к этой строке файлов.</returns>
-        public (string resultStrig, List<string> attachedFileString) GetParseToTessaHTMLString(
+        public (string resultStrig, List<string> attachedFilesString) GetParseToTessaHTMLString(
             string mainString,
             string issueDirectory,
             Dictionary<string, Guid> attachedFileIssue,
@@ -350,7 +350,10 @@ namespace TextileToTessaHTML
             // преобразуем собсвенные теги кода в теги <code>.
             resultString = resultString.Replace("@code", "<code>");
             resultString = resultString.Replace("@/code", "</code>");
-            resultString = this.ParseCitationSection(resultString);
+            if (isTopicText)
+            {
+                resultString = this.ParseCitationSection(resultString);
+            }
             // преобразуем строку в стандартный HTML.
             resultString = TextileToHTML.TextileFormatter.FormatString(resultString);
 
@@ -664,7 +667,11 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Преобразование строк с прикрепленными изображениями.
         /// </summary>
+        /// <param name="mainString">Сторока для преобразования.</param>
         /// <param name="matchImages">Совпадение с шаблоном регулярного выражения.</param>
+        /// <param name="issueDirectory">Расположение файла инцидента.</param>
+        /// <param name="isTopicText">Истина - это сообщение из топика.</param>
+        /// <returns>Преобразованная строка.</returns>
         private string ParseAttachmentImages(
             string mainString,
             Match matchImages,
@@ -681,12 +688,13 @@ namespace TextileToTessaHTML
             this.AttachedFileString.Add(fileName);
             // TODO: т.к файлы с id перед наименованием - получаем путь к файлы с помощью Directory.
             var fileDirectory = Directory.GetFiles(issueDirectory, $"*_{fileName}");
+            // Строка генерируется только в описании. Для топика такая строка не нужна.
             if (!isTopicText)
             {
                 this.GenerateAttachemntsString(fileName);
             }
 
-            return this.ParseAttachments(mainString, fileDirectory[0], fileName, matchImages);
+            return this.ParseAttachments(mainString, fileDirectory[0], fileName, isTopicText, matchImages);
         }
 
         /// <summary>
@@ -726,12 +734,21 @@ namespace TextileToTessaHTML
             string mainString,
             string fileDirectory,
             string fileName,
+            bool isTopicText,
             Match match)
         {
             string resultString = mainString;
 
             var id = this.AttachedFilesIssue[fileName];
-            var caption = id.ToString().Replace("-", "");
+            string caption;
+            if (!isTopicText)
+            {
+                caption = id.ToString().Replace("-", "");
+            }
+            else
+            {
+                caption = fileName;
+            }
             var mainImage = Image.FromFile(fileDirectory);
             var resizeImage = this.ResizeImage(mainImage, (int)(mainImage.Width * 0.3), (int)(mainImage.Height * 0.3));
 

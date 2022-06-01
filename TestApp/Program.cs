@@ -10,14 +10,14 @@ namespace TestApp
         {
             Dictionary<string, Guid> attachemntsIds = new Dictionary<string, Guid>()
             {
-                { "photo_2021-10-05_11-52-45.jpg", new Guid("49ba1622-55d9-48c5-a4d5-9a85801fd62a") },
+                { "contract.png", new Guid("49ba1622-55d9-48c5-a4d5-9a85801fd62a") },
                 { "2.png", new Guid("8166b72b-3a3b-4198-9cb9-657da5d9f8ee") },
                 { "07.11.12.png", new Guid("8b22ba42-6404-4130-bd1b-ff2fb037f893") }
             };
 
-            string filesDirectory = $"D:\\WORK_SYNTELLECT\\OtherFiles\\Migration\\29906";
+            string filesDirectory = $"D:\\WORK_SYNTELLECT\\OtherFiles\\Migration\\12504";
 
-            string testString = "Константин, добрый день.\r\n\r\nОшибка с расчетом количества заданий в отчетах будет исправлена в следующей версии Tessa (2.6).\r\n\r\nЗадания с вариантами завершения Отозвать и Вернуть документ на доработку будут исключены из отчетов по завершенным заданиям в будущих версиях Tessa.";
+            string testString = "Добрый день, спасибо за ответ.\r\n\r\nСобственно, тогда ещё вопрос - добавляем колонку в CardUIExtension с помощью:\r\n<pre><code>\r\n    var history = context.Model.TryGetTaskHistory();\r\n    if (history != null)\r\n    {\r\n        var column = new TaskHistoryColumnViewModel(history.Columns.Scope)\r\n        {\r\n            Header = \"SomeColumn\",\r\n            TextWrapping = TextWrapping.WrapWithOverflow\r\n        };   \r\n        history.Columns.Add(column);\r\n    }\r\n</code></pre> \r\n\r\nКак я понял, параметр column.DisplayMemberPath напрямую связан с информацией из Model у TaskHistoryItemViewModel. Получается, что колонки привязаны к этому классу?\r\nКак в таком случае можно привязать к колонке какие-то произвольные данные?";
             Parser parser = new Parser();
             var result = parser.GetParseToTessaHTMLString(testString, filesDirectory, attachemntsIds, true);
         }
