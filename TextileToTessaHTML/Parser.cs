@@ -684,7 +684,7 @@ namespace TextileToTessaHTML
                 resultString = resultString.Replace(matchImages.Value, matchImages.Groups[1].Value);
                 return resultString;
             }
-            string fileName = matchImages.Groups[1].Value;
+            string fileName = matchImages.Groups[1].Value.ToLower();
             this.AttachedFileString.Add(fileName);
             // TODO: т.к файлы с id перед наименованием - получаем путь к файлы с помощью Directory.
             var fileDirectory = Directory.GetFiles(issueDirectory, $"*_{fileName}");
