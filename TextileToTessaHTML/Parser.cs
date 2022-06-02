@@ -112,12 +112,12 @@ namespace TextileToTessaHTML
         private readonly string TessaListItemTag = "<li><p><span>";
         private readonly string TessaParagraphTag = "<p><span>";
         private readonly string TessaPreTag = "<div class=\\\"forum-block-monospace\\\"><p><span>";
-        private readonly string TessaCitationTag = "<div class=\"forum-div\"><div style=\"background-color: rgba(177, 193, 231, 1)\" class=\"forum-block\"><p><span>";
+        private readonly string TessaCitationTag = "<div class=\"forum-quote\"><p><span>";
 
         private readonly string TessaListItemClosedTag = "</span></p></li>";
         private readonly string TessaParagraphClosedTag = "</span></p>";
         private readonly string TessaPreCloseTag = "</span></p></div>";
-        private readonly string TessaCitationCloseTag = "</span></p></div></div>";
+        private readonly string TessaCitationCloseTag = "</span></p></div>";
 
         private readonly string TessaNewLineTag = "</span></p><p><span>";
 
@@ -160,7 +160,7 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Шаблон регулярного выражения для цитирования.
         /// </summary>
-        private static readonly string citationTemplates = "&gt; (.*?)\\r\\n";
+        private static readonly string citationTemplates = "\\n&gt; (.*?)\\r";
 
         /// <summary>
         /// Регулярное выражение для секции открытия тега заголовка.
@@ -524,11 +524,17 @@ namespace TextileToTessaHTML
         {
             string resultString = mainString;
 
-            if (this.TryGetMathes(mainString, _citation, out MatchCollection matches))
+            while (this.TryGetMathes(resultString, _citation, out MatchCollection matches))
             {
-                foreach (Match match in matches)
+                var match = matches[0];
+                var citationMessage = match.Groups[1].Value;
+                if (citationMessage != "")
                 {
-                    resultString = resultString.Replace(match.Value, $"<citation>{match.Groups[1].Value}</citation>");
+                    resultString = resultString.Replace(match.Value, $"<citation>{citationMessage}</citation>");
+                }
+                else
+                {
+                    resultString = resultString.Remove(match.Index, match.Length);
                 }
             }
 
