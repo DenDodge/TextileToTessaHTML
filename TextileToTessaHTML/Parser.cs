@@ -53,6 +53,7 @@ namespace TextileToTessaHTML
         private readonly string BoldTagName = "BoldTag";
         private readonly string ItalicTagName = "ItalicTag";
         private readonly string UnderlineTagName = "UnderlineTag";
+        private readonly string UnderlineBoldTagName = "UnderlineBoldTag";
         private readonly string CrossedOutTagName = "CrossedOutTag";
         private readonly string NumberedListTagName = "NumberedListTag";
         private readonly string UnNumberedListTagName = "UnNumberedListTag";
@@ -70,10 +71,11 @@ namespace TextileToTessaHTML
 
         #region Standart Tags
 
-        private readonly string StandartBoldItalicTag = "<strong><em>";
         private readonly string StandartBoldTag = "<strong>";
+        private readonly string StandartBoldItalicTag = "<strong><em>";
         private readonly string StandartItalicTag = "<em>";
         private readonly string StandartUnderlineTag = "<ins>";
+        private readonly string StandartUnderlineBoldTag = "<ins><strong>";
         private readonly string StandartCrossedOutTag = "<del>";
         private readonly string StandartNumberedListTag = "<ol>";
         private readonly string StandartUnNumberedListTag = "<ul>";
@@ -87,6 +89,7 @@ namespace TextileToTessaHTML
         private readonly string StandartBoldClosedTag = "</strong>";
         private readonly string StandartItalicClosedTag = "</em>";
         private readonly string StandartUnderlineClosedTag = "</ins>";
+        private readonly string StandartUnderlineBoldClosedTag = "</ins></strong>";
         private readonly string StandartCrossedOutClosedTag = "</del>";
         private readonly string StandartNumberedListClosedTag = "</ol>";
         private readonly string StandartUnNumberedListClosedTag = "</ul>";
@@ -106,6 +109,7 @@ namespace TextileToTessaHTML
         private readonly string TessaBoldTag = "</span><span style=\\\"font-weight:bold;\\\">";
         private readonly string TessaItalicTag = "</span><span style=\\\"font-style:italic;\\\">";
         private readonly string TessaUnderlineTag = "</span><span style=\\\"text-decoration:underline;\\\">";
+        private readonly string TessaUnderlineBoldTag = "</span><span style=\\\"text-decoration:underline;font-weight:bold;\\\">";
         private readonly string TessaCrossedOutTag = "</span><span style=\\\"text-decoration:line-through;\\\">";
         private readonly string TessaNumberedListTag = "</span><ol class=\\\"forum-ol\\\">";
         private readonly string TessaUnNumberedListTag = "</span><ul class=\\\"forum-ul\\\">";
@@ -160,7 +164,16 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Шаблон регулярного выражения для цитирования.
         /// </summary>
-        private static readonly string citationTemplates = "\\n&gt; (.*?)\\r";
+        private static readonly string citationTemplates = "\\n&gt;(.*?)\\r";
+
+        /// <summary>
+        /// Шаблон регулярного выражения для вложенного цитирования.
+        /// </summary>
+        private static readonly string nestedCitationTemplates = "<citation> &gt;(.*?)</citation>";
+
+        #endregion
+
+        #region Regex
 
         /// <summary>
         /// Регулярное выражение для секции открытия тега заголовка.
@@ -203,6 +216,12 @@ namespace TextileToTessaHTML
         /// </summary>
         private static readonly Regex _citation = new Regex(citationTemplates,
            RegexOptions.Singleline | RegexOptions.Compiled);
+
+        // <summary>
+        /// Регулярное выражение для вложенной цитаты.
+        /// </summary>
+        private static readonly Regex _nestedCitation = new Regex(nestedCitationTemplates,
+            RegexOptions.Singleline | RegexOptions.Compiled);
 
         #endregion
 
@@ -267,6 +286,7 @@ namespace TextileToTessaHTML
             // тут важен порядок добавления.
             StandartOpeningTags.Add(ParagraphTagName, StandartParagraphTag);
             StandartOpeningTags.Add(BoldItalicTagName, StandartBoldItalicTag);
+            StandartOpeningTags.Add(UnderlineBoldTagName, StandartUnderlineBoldTag);
             StandartOpeningTags.Add(BoldTagName, StandartBoldTag);
             StandartOpeningTags.Add(ItalicTagName, StandartItalicTag);
             StandartOpeningTags.Add(UnderlineTagName, StandartUnderlineTag);
@@ -280,6 +300,7 @@ namespace TextileToTessaHTML
 
             StandartClosingTags.Add(ParagraphTagName, StandartParagraptClosedTag);
             StandartClosingTags.Add(BoldItalicTagName, StandartBoldItalicClosedTag);
+            StandartClosingTags.Add(UnderlineBoldTagName, StandartUnderlineBoldClosedTag);
             StandartClosingTags.Add(BoldTagName, StandartBoldClosedTag);
             StandartClosingTags.Add(ItalicTagName, StandartItalicClosedTag);
             StandartClosingTags.Add(UnderlineTagName, StandartUnderlineClosedTag);
@@ -302,6 +323,7 @@ namespace TextileToTessaHTML
 
             TessaOpeningTags.Add(ParagraphTagName, TessaParagraphTag);
             TessaOpeningTags.Add(BoldItalicTagName, TessaBoldItalicTag);
+            TessaOpeningTags.Add(UnderlineBoldTagName, TessaUnderlineBoldTag);
             TessaOpeningTags.Add(BoldTagName, TessaBoldTag);
             TessaOpeningTags.Add(ItalicTagName, TessaItalicTag);
             TessaOpeningTags.Add(UnderlineTagName, TessaUnderlineTag);
@@ -315,6 +337,7 @@ namespace TextileToTessaHTML
 
             TessaClosingTags.Add(ParagraphTagName, TessaParagraphClosedTag);
             TessaClosingTags.Add(BoldItalicTagName, SpanClosedTag);
+            TessaClosingTags.Add(UnderlineBoldTagName, SpanClosedTag);
             TessaClosingTags.Add(BoldTagName, SpanClosedTag);
             TessaClosingTags.Add(ItalicTagName, SpanClosedTag);
             TessaClosingTags.Add(UnderlineTagName, SpanClosedTag);
@@ -524,13 +547,29 @@ namespace TextileToTessaHTML
         {
             string resultString = mainString;
 
+            // преобразовываем внешние цитаты.
             while (this.TryGetMathes(resultString, _citation, out MatchCollection matches))
             {
                 var match = matches[0];
                 var citationMessage = match.Groups[1].Value;
-                if (citationMessage != "")
+                if (!String.IsNullOrWhiteSpace(citationMessage))
                 {
-                    resultString = resultString.Replace(match.Value, $"<citation>{citationMessage}</citation>");
+                    resultString = resultString.Replace(match.Groups[0].Value, $"<citation>{citationMessage}</citation>");
+                }
+                else
+                {
+                    resultString = resultString.Remove(match.Index, match.Length);
+                }
+            }
+
+            // преобразовываем вложенные цитаты.
+            while (this.TryGetMathes(resultString, _nestedCitation, out MatchCollection matches))
+            {
+                var match = matches[0];
+                var citationMessage = match.Groups[1].Value;
+                if (!String.IsNullOrWhiteSpace(citationMessage))
+                {
+                    resultString = resultString.Replace(match.Groups[0].Value, $"<citation><citation>{citationMessage}</citation></citation>");
                 }
                 else
                 {
