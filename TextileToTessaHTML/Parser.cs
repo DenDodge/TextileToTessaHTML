@@ -362,6 +362,13 @@ namespace TextileToTessaHTML
         {
             string resultString = mainString;
 
+            // если чтрока начинается с цитаты:
+            // - для верной отработки регулярного выражения добавляем в начало комбинацию "новая строка".
+            if (resultString[0] == '>')
+            {
+                resultString = resultString.Insert(0, "\r\n");
+            }
+
             // инлайн код блоки превращаем в жирный текст.
             resultString = this.ParseInlineTags(resultString);
             // все блоки кода приводим к единому егу "@code" и "/@code".
