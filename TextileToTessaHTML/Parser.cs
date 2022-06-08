@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using TextileToHTML.Blocks;
 
 namespace TextileToTessaHTML
 {
@@ -164,12 +165,13 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Шаблон регулярного выражения для цитирования.
         /// </summary>
-        private static readonly string citationTemplates = "\\n&gt;(.*?)\\r";
+        private static readonly string citationTemplate = "\\n&gt;(.*?)\\r";
 
         /// <summary>
         /// Шаблон регулярного выражения для вложенного цитирования.
         /// </summary>
-        private static readonly string nestedCitationTemplates = "<citation> &gt;(.*?)</citation>";
+        private static readonly string nestedCitationTemplate = "<citation> &gt;(.*?)</citation>";
+
 
         #endregion
 
@@ -214,13 +216,13 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Регулярное выражение для цитаты.
         /// </summary>
-        private static readonly Regex _citation = new Regex(citationTemplates,
+        private static readonly Regex _citation = new Regex(citationTemplate,
            RegexOptions.Singleline | RegexOptions.Compiled);
 
         // <summary>
         /// Регулярное выражение для вложенной цитаты.
         /// </summary>
-        private static readonly Regex _nestedCitation = new Regex(nestedCitationTemplates,
+        private static readonly Regex _nestedCitation = new Regex(nestedCitationTemplate,
             RegexOptions.Singleline | RegexOptions.Compiled);
 
         #endregion
@@ -369,14 +371,14 @@ namespace TextileToTessaHTML
                 resultString = resultString.Insert(0, "\r\n");
             }
 
-            // инлайн код блоки превращаем в жирный текст.
-            resultString = this.ParseInlineTags(resultString);
             // все блоки кода приводим к единому егу "@code" и "/@code".
             resultString = this.ParsePreCodeTags(resultString);
             resultString = this.ParseCollapseTags(resultString);
             // преобразуем символы "<" и ">" в символы "&lt;" и "&gt;".
             resultString = resultString.Replace("<", @"&lt;");
             resultString = resultString.Replace(">", @"&gt;");
+            resultString = resultString.Replace("[", @"&#91;");
+            resultString = resultString.Replace("]", @"&#93;");
             // преобразуем собсвенные теги кода в теги <code>.
             resultString = resultString.Replace("@code", "<code>");
             resultString = resultString.Replace("@/code", "</code>");
@@ -409,7 +411,10 @@ namespace TextileToTessaHTML
         {
             string resultString = mainString;
 
-            resultString = this.ParseSlashesSyblol(resultString);
+            if (!isTopicText)
+            {
+                resultString = this.ParseSlashesSyblol(resultString);
+            }
 
             foreach (var tag in TessaOpeningTags)
             {
@@ -441,6 +446,9 @@ namespace TextileToTessaHTML
             }
 
             resultString = this.ParsingHttpLink(resultString, isTopicText);
+
+            // TODO: инлайн код блоки превращаем в жирный текст.
+            resultString = this.ParseInlineTags(resultString);
 
             // установка начала и конца строки.
             resultString = this.SetPreAndPostString(resultString, isTopicText);
@@ -495,7 +503,15 @@ namespace TextileToTessaHTML
         {
             string resultString = mainString;
 
-            resultString = resultString.Replace("@", "*");
+            // сначала для @...@ делаем теги "inlinecode".
+            // ">@" - любой тег перед "@".
+            // "@<" - любой тег после "@".
+            resultString = resultString.Replace(">@", "><inlinecode>");
+            resultString = resultString.Replace("@<", "</inlinecode><");
+
+            // меняем все "inlinecode" теги на жирный шрифт.
+            resultString = resultString.Replace("<inlinecode>", "<span style=\"font-weight:bold;\">");
+            resultString = resultString.Replace("</inlinecode>", "</span>");
 
             return resultString;
         }

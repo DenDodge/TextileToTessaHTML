@@ -36,10 +36,10 @@ namespace TextileToHTML.Blocks
 
         static public string CodeFormatMatchEvaluator(Match m)
         {
-            string res = m.Groups["before"].Value + "<code";
+            string res = m.Groups["before"].Value + "<inlinecode";
             if (m.Groups["lang"].Length > 0)
                 res += " language=\"" + m.Groups["lang"].Value + "\"";
-            res += ">" + m.Groups["code"].Value + "</code>" + m.Groups["after"].Value;
+            res += ">" + m.Groups["code"].Value + "</inlinecode>" + m.Groups["after"].Value;
             return res;
         }
     }

@@ -18,7 +18,7 @@ namespace TestApp
             string filesDirectory = $"D:\\WORK_SYNTELLECT\\OtherFiles\\Migration\\12504";
 
             string testString =
-                "> чтобы пользователи добавлялись в оба юр.лица ДТ, но не добавлялись в наши роли.\r\n\r\nКоллеги, написал вам скрипт, который добавляет в обе Legal Entity Донского Табака всех пользователей, заведённых в Docsvision.\r\nСкрипт @AddEmployeesToCompanies.sql@\r\n\r\n\r\nС уважением, Денис Афанасьев.";
+                "Пропадает строка с ролью *сотрудника* из таблицы @RoleUsers@ на которой завязаны некоторые вещи, такие как высчитывание ролей для отображения\\отправки заданий на определенную роль, отправка на ознакомление или расчет прав доступа.\r\n\r\nДобавление новой строки в таблицу *@RoleUsers@* должно решать проблему, скрипт для добавления нужной записи приложен ниже, если будут возникать аналогичные ситуации (если сотрудник не входит в \"свою\" роль это точно неправильно)\r\n\r\n<pre><code class=\"SQL\">\r\ninsert into RoleUsers\r\nselect ID, NEWID(), 1, ID, FullName, 0\r\nfrom PersonalRoles\r\nwhere ID in ('<ID сотрудника>')\r\n--where ID in ('<ID сотрудника1>', '<ID сотрудника2>', '<ID сотрудникаN>') /*Для добавления сразу нескольких сотрудников указываем ID через запятые*/\r\n</code></pre>\r\n\r\nДля данного сотрудника роль исправлена, но обратите внимание на остальных удаленных сотрудников.";
                 Parser parser = new Parser();
             var result = parser.GetParseToTessaHTMLString(testString, filesDirectory, attachemntsIds, true);
         }
