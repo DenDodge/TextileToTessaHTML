@@ -47,6 +47,12 @@ namespace TextileToTessaHTML
         /// Список прикрепленных файлов.
         /// </summary>
         private Dictionary<string, Guid> AttachedFilesIssue = new Dictionary<string, Guid>();
+        
+        /// <summary>
+        /// Пустое описание инцидента.
+        /// Применяется, если входящая строка пустая или с пробелами.
+        /// </summary>
+        private readonly string EmptyString = "{\"Text\":\"<div class=\\\"forum-div\\\"><p><span>Описание инцидента отсутствует.</span></p></div>\"}";
 
         #region Tags Names
 
@@ -256,6 +262,13 @@ namespace TextileToTessaHTML
             Dictionary<string, Guid> attachedFileIssue,
             bool isTopicText = false)
         {
+            this.AttachedFileString.Clear();
+
+            if (String.IsNullOrWhiteSpace(mainString))
+            {
+                return (this.EmptyString, this.AttachedFileString);
+            }
+            
             this.AttachedFilesIssue = attachedFileIssue;
             this.AttachmentsString = "";
 
