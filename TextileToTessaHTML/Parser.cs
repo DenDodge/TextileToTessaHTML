@@ -377,12 +377,20 @@ namespace TextileToTessaHTML
         {
             string resultString = mainString;
 
-            // если чтрока начинается с цитаты:
-            // - для верной отработки регулярного выражения добавляем в начало комбинацию "новая строка".
+            // преобразуем "пользовательские символы" в html символы.
+            resultString = resultString.Replace("--->", "&#129042;");
+            resultString = resultString.Replace("---", "&mdash;");
+            resultString = resultString.Replace("->", "&#129046;");
+            
+            // если cтрока начинается с цитаты,
+            // для верной отработки регулярного выражения добавляем:
+            // - в начало комбинацию "новая строка";
             if (resultString[0] == '>')
             {
                 resultString = resultString.Insert(0, "\r\n");
             }
+            // - в конец символы переноса строки.
+            resultString = resultString + "\r\n";
 
             // все блоки кода приводим к единому егу "@code" и "/@code".
             resultString = this.ParsePreCodeTags(resultString);
@@ -390,6 +398,7 @@ namespace TextileToTessaHTML
             // преобразуем символы "<" и ">" в символы "&lt;" и "&gt;".
             resultString = resultString.Replace("<", @"&lt;");
             resultString = resultString.Replace(">", @"&gt;");
+            
             resultString = resultString.Replace("[", @"&#91;");
             resultString = resultString.Replace("]", @"&#93;");
             // преобразуем собсвенные теги кода в теги <code>.
@@ -501,6 +510,12 @@ namespace TextileToTessaHTML
                 resultString = _preCodeTag.Replace(resultString, "@code");
             }
             resultString = resultString.Replace("</code></pre>", "@/code");
+            
+            // если в <pre> есть пример тега <pre>
+            // - второй тег заключаем к символы html.
+            resultString = resultString.Replace("<pre><pre>", "<pre>&lt;pre&gt;");
+            resultString = resultString.Replace("</pre></pre>", "&lt;/pre&gt;</pre>");
+            
             resultString = resultString.Replace("<pre>", "@code");
             resultString = resultString.Replace("</pre>", "@/code");
 
@@ -587,7 +602,7 @@ namespace TextileToTessaHTML
             while (this.TryGetMathes(resultString, _citation, out MatchCollection matches))
             {
                 var match = matches[0];
-                var citationMessage = match.Groups[1].Value;
+                var citationMessage = this.ParseCitationText(match.Groups[1].Value);
                 if (!String.IsNullOrWhiteSpace(citationMessage))
                 {
                     resultString = resultString.Replace(match.Groups[0].Value, $"<citation>{citationMessage}</citation>");
@@ -974,6 +989,21 @@ namespace TextileToTessaHTML
                 return $"</span><a data-custom-href=\\\"{link}\\\" href=\\\"{link}\\\" class=\\\"forum-url\\\"><span>{link}</span></a><span>";
             }
             return $"</span><a data-custom-href=\"{link}\" href=\"{link}\" class=\"forum-url\"><span>{link}</span></a><span>";
+        }
+
+        /// <summary>
+        /// Преобразует символы в тексте цитаты в html код.
+        /// </summary>
+        /// <param name="mainString"></param>
+        /// <returns></returns>
+        private string ParseCitationText(string mainString)
+        {
+            string resultString = mainString;
+            
+            // чтобы внутри цитаты не парсился тег <a>.
+            resultString = resultString.Replace(":", "&#58;");
+
+            return resultString;
         }
 
         #endregion
