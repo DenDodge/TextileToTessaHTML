@@ -256,7 +256,7 @@ namespace TextileToTessaHTML
         /// <param name="attachedFileIssue">Прикрепленные к инциденту файлы.</param>
         /// <param name="isTopicText">Истина - это сообщение топика.</param>
         /// <returns>Преобразованная строка и список имен прикреаленных к этой строке файлов.</returns>
-        public (string resultStrig, List<string> attachedFilesString) GetParseToTessaHTMLString(
+        public (string resultString, List<string> attachedFilesString) GetParseToTessaHTMLString(
             string mainString,
             string issueDirectory,
             Dictionary<string, Guid> attachedFileIssue,
