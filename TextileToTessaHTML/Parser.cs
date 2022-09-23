@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using TextileToHTML.Blocks;
 
 namespace TextileToTessaHTML
@@ -21,7 +22,7 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Прикрепленные к сообщению файлы.
         /// </summary>
-        private List<string> AttachedFileString = new List<string>();
+        private List<Guid> AttachedFileIds = new List<Guid>();
 
         /// <summary>
         /// Открытие тегов стандартного HTML.
@@ -46,7 +47,7 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Список прикрепленных файлов.
         /// </summary>
-        private Dictionary<string, Guid> AttachedFilesIssue = new Dictionary<string, Guid>();
+        private Dictionary<Guid, (string, string)> AttachedFilesIssue = new();
         
         /// <summary>
         /// Пустое описание инцидента.
@@ -149,9 +150,13 @@ namespace TextileToTessaHTML
         private static readonly string headerCloseTagTemplate = @"<\/h[1-6]>";
 
         /// <summary>
-        /// Шаблон регулярного выражения для тега изображения.
+        /// Шаблон регулярного выражения для тега изображения (описание).
         /// </summary>
-        private static readonly string imagesTagTemplate = "<img src=\"(.*?)\" .*? />";
+        private static readonly string imagesTagDescriptionTemplate = "<img src=&#8220;(.*?)&#8220; .*? />";
+        /// <summary>
+        /// Шаблон регулярного выражения для тега изображения (сообщение).
+        /// </summary>
+        private static readonly string imagesTagTopicTemplate = "<img src=\"(.*?)\" .*? />";
         /// <summary>
         /// Шаблон регулярного выражения для секции кода с "pre".
         /// </summary>
@@ -196,7 +201,12 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Регулярное выражение для секции тега изображения.
         /// </summary>
-        private static readonly Regex _imagesTag = new Regex(imagesTagTemplate,
+        private static readonly Regex _imagesDescriptionTag = new Regex(imagesTagDescriptionTemplate,
+            RegexOptions.Singleline | RegexOptions.Compiled);
+        /// <summary>
+        /// Регулярное выражение для секции тега изображения.
+        /// </summary>
+        private static readonly Regex _imagesTopicTag = new Regex(imagesTagTopicTemplate,
             RegexOptions.Singleline | RegexOptions.Compiled);
         /// <summary>
         /// Регулярное выражение для секции кода с "pre".
@@ -256,17 +266,17 @@ namespace TextileToTessaHTML
         /// <param name="attachedFileIssue">Прикрепленные к инциденту файлы.</param>
         /// <param name="isTopicText">Истина - это сообщение топика.</param>
         /// <returns>Преобразованная строка и список имен прикреаленных к этой строке файлов.</returns>
-        public (string resultString, List<string> attachedFilesString) GetParseToTessaHTMLString(
+        public (string ResultString, List<Guid> AttachedFileId) GetParseToTessaHTMLString(
             string mainString,
             string issueDirectory,
-            Dictionary<string, Guid> attachedFileIssue,
+            Dictionary<Guid, (string, string)> attachedFileIssue,
             bool isTopicText = false)
         {
-            this.AttachedFileString.Clear();
+            this.AttachedFileIds.Clear();
 
             if (String.IsNullOrWhiteSpace(mainString))
             {
-                return (this.EmptyString, this.AttachedFileString);
+                return (this.EmptyString, this.AttachedFileIds);
             }
             
             this.AttachedFilesIssue = attachedFileIssue;
@@ -283,7 +293,7 @@ namespace TextileToTessaHTML
                 isTopicText);
             resultString = resultString.Replace("\n", TessaNewLineTag);
 
-            return (resultString, this.AttachedFileString);
+            return (resultString, this.AttachedFileIds);
         }
 
         #region Private methods
@@ -444,28 +454,23 @@ namespace TextileToTessaHTML
             }
 
             // преобразуем тег <br /> в </p><p>.
-            resultString = this.ParseNewLineTag(resultString);
-
-            // т.к верстка в сообщениях отличается от вестки в описании
-            // преобразуем код "&#8220" и "&#8221" в символы "\\\"".
-            if (!isTopicText)
-            {
-                resultString = this.ParseQuotesSymbol(resultString);
-            }
-
+            resultString = resultString.Replace(StandartNewLineTag, TessaNewLineTag, StringComparison.CurrentCulture);
+            
             // преобразуем заголовки.
-            resultString = this.ParseHeaderString(resultString);
+            resultString = ParseHeaderString(resultString);
 
-            this.AttachedFileString.Clear();
-            while (this.TryGetMathes(resultString, _imagesTag, out MatchCollection matches))
+            while (TryGetMathes(resultString, isTopicText ? _imagesTopicTag : _imagesDescriptionTag, out var matches))
             {
                 resultString = this.ParseAttachmentImages(resultString, matches[0], issueDirectory, isTopicText);
             }
 
-            if (isTopicText)
+            resultString = isTopicText switch
             {
-                resultString = this.RemoveSlachSyblol(resultString);
-            }
+                // т.к верстка в сообщениях отличается от верстки в описании
+                // преобразуем код "&#8220" и "&#8221" в символы "\\\"".
+                false => ParseQuotesSymbol(resultString),
+                true => resultString.Replace("\\\"", "\"")
+            };
 
             resultString = this.ParsingHttpLink(resultString, isTopicText);
 
@@ -781,9 +786,9 @@ namespace TextileToTessaHTML
                 return resultString;
             }
             string fileName = matchImages.Groups[1].Value.ToLower();
-            this.AttachedFileString.Add(fileName);
+            this.AttachedFileIds.Add(AttachedFilesIssue.Where(a => a.Value.Item1 == fileName).Select(x => x.Key).First());
             // TODO: т.к файлы с id перед наименованием - получаем путь к файлы с помощью Directory.
-            var fileDirectory = Directory.GetFiles(issueDirectory, $"*_{fileName}");
+            var fileDirectory = Directory.GetFiles(issueDirectory, AttachedFilesIssue.Where(a => a.Value.Item1 == fileName).Select(x => x.Value.Item2).First());
             // Строка генерируется только в описании. Для топика такая строка не нужна.
             if (!isTopicText)
             {
@@ -799,7 +804,7 @@ namespace TextileToTessaHTML
         /// <param name="fileName">Имя файла.</param>
         private void GenerateAttachemntsString(string fileName)
         {
-            var id = this.AttachedFilesIssue[fileName];
+            var id = this.AttachedFilesIssue.Where(a => a.Value.Item1 == fileName).Select(x => x.Key).First();
             var caption = id.ToString().Replace("-", "");
             var uri = $"https:\\\\{caption}";
 
@@ -835,7 +840,7 @@ namespace TextileToTessaHTML
         {
             string resultString = mainString;
 
-            var id = this.AttachedFilesIssue[fileName];
+            var id =  this.AttachedFilesIssue.Where(a => a.Value.Item1 == fileName).Select(x => x.Key).First();
             string caption;
             if (!isTopicText)
             {
