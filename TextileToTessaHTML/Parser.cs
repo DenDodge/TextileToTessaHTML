@@ -785,7 +785,8 @@ namespace TextileToTessaHTML
                 resultString = resultString.Replace(matchImages.Value, matchImages.Groups[1].Value);
                 return resultString;
             }
-            string fileName = matchImages.Groups[1].Value.ToLower();
+
+            string fileName = matchImages.Groups[1].Value;
             this.AttachedFileIds.Add(AttachedFilesIssue.Where(a => a.Value.Item1 == fileName).Select(x => x.Key).First());
             // TODO: т.к файлы с id перед наименованием - получаем путь к файлы с помощью Directory.
             var fileDirectory = Directory.GetFiles(issueDirectory, AttachedFilesIssue.Where(a => a.Value.Item1 == fileName).Select(x => x.Value.Item2).First());
@@ -857,7 +858,7 @@ namespace TextileToTessaHTML
 
             var textString =
                 $"<p><span><img data-custom-style=\\\"width:{resizeImage.Width};height:{resizeImage.Height};\\\" " +
-                $"name=\\\"{caption}\\\" " +
+                $"name=\\\"{id:N}\\\" " +
                 $"src=\\\"data:image/png;base64,{base64FileString}\\\"></span></p>";
 
             resultString = resultString.Remove(match.Index, match.Length);
