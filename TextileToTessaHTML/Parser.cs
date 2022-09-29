@@ -6,7 +6,6 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using TextileToHTML.Blocks;
 
 namespace TextileToTessaHTML
 {
@@ -21,117 +20,118 @@ namespace TextileToTessaHTML
 
         /// <summary>
         /// Прикрепленные к сообщению файлы.
+        /// Возвращаются вместе с преобразованной строкой.
         /// </summary>
-        private List<Guid> AttachedFileIds = new List<Guid>();
+        private HashSet<Guid> AttachedFileIds;
 
         /// <summary>
-        /// Открытие тегов стандартного HTML.
+        /// Открывающие теги стандартной HTML разметки.
         /// </summary>
-        private Dictionary<string, string> StandartOpeningTags = new Dictionary<string, string>();
+        private Dictionary<string, string> StandardOpeningTags = new();
 
         /// <summary>
-        /// Закрытие тегов стандартного HTML.
+        /// Закрывающие теги стандартной HTML разметки.
         /// </summary>
-        private Dictionary<string, string> StandartClosingTags = new Dictionary<string, string>();
+        private Dictionary<string, string> StandardClosingTags = new();
 
         /// <summary>
-        /// Открытие тегов HTML Tessa.
+        /// Открывающие теги HTML разметки TESSA.
         /// </summary>
-        private Dictionary<string, string> TessaOpeningTags = new Dictionary<string, string>();
+        private Dictionary<string, string> TessaOpeningTags = new();
 
         /// <summary>
-        /// Закрытие тегов HTML Tessa.
+        /// Закрывающие теги HTML разметки TESSA.
         /// </summary>
-        private Dictionary<string, string> TessaClosingTags = new Dictionary<string, string>();
+        private Dictionary<string, string> TessaClosingTags = new();
 
         /// <summary>
-        /// Список прикрепленных файлов.
+        /// Приложенные к инциденту файлы.
         /// </summary>
-        private Dictionary<Guid, (string, string)> AttachedFilesIssue = new();
-        
+        private Dictionary<Guid, (string Name, string FileName)> AttachedFilesIssue = new();
+
         /// <summary>
         /// Пустое описание инцидента.
         /// Применяется, если входящая строка пустая или с пробелами.
         /// </summary>
-        private readonly string EmptyString = "{\"Text\":\"<div class=\\\"forum-div\\\"><p><span>Описание инцидента отсутствует.</span></p></div>\"}";
+        private const string EmptyString = "{\"Text\":\"<div class=\\\"forum-div\\\"><p><span>Описание инцидента отсутствует.</span></p></div>\"}";
 
         #region Tags Names
 
-        private readonly string BoldItalicTagName = "BoldItalicTag";
-        private readonly string BoldTagName = "BoldTag";
-        private readonly string ItalicTagName = "ItalicTag";
-        private readonly string UnderlineTagName = "UnderlineTag";
-        private readonly string UnderlineBoldTagName = "UnderlineBoldTag";
-        private readonly string CrossedOutTagName = "CrossedOutTag";
-        private readonly string NumberedListTagName = "NumberedListTag";
-        private readonly string UnNumberedListTagName = "UnNumberedListTag";
-        private readonly string ListItemTagName = "ListItemTag";
-        private readonly string ParagraphTagName = "ParagraphTag";
-        private readonly string PreTagName = "PreTag";
-        private readonly string CodeTagName = "CodeTag";
-        private readonly string CitationTagName = "CitationTag";
+        private const string BoldItalicTagName = "BoldItalicTag";
+        private const string BoldTagName = "BoldTag";
+        private const string ItalicTagName = "ItalicTag";
+        private const string UnderlineTagName = "UnderlineTag";
+        private const string UnderlineBoldTagName = "UnderlineBoldTag";
+        private const string CrossedOutTagName = "CrossedOutTag";
+        private const string NumberedListTagName = "NumberedListTag";
+        private const string UnNumberedListTagName = "UnNumberedListTag";
+        private const string ListItemTagName = "ListItemTag";
+        private const string ParagraphTagName = "ParagraphTag";
+        private const string PreTagName = "PreTag";
+        private const string CodeTagName = "CodeTag";
+        private const string CitationTagName = "CitationTag";
 
         #endregion
 
         #region Tags
 
-        private string SpanClosedTag = "</span>";
+        private const string SpanClosedTag = "</span>";
 
-        #region Standart Tags
+        #region Standard Tags
 
-        private readonly string StandartBoldTag = "<strong>";
-        private readonly string StandartBoldItalicTag = "<strong><em>";
-        private readonly string StandartItalicTag = "<em>";
-        private readonly string StandartUnderlineTag = "<ins>";
-        private readonly string StandartUnderlineBoldTag = "<ins><strong>";
-        private readonly string StandartCrossedOutTag = "<del>";
-        private readonly string StandartNumberedListTag = "<ol>";
-        private readonly string StandartUnNumberedListTag = "<ul>";
-        private readonly string StandartListItemTag = "<li>";
-        private readonly string StandartParagraphTag = "<p>";
-        private readonly string StandartPreTag = "<pre>";
-        private readonly string StandartCodeTag = "<code>";
-        private readonly string StandartCitationTag = "<citation>";
+        private const string StandardBoldOpenTag = "<strong>";
+        private const string StandardBoldItalicOpenTag = "<strong><em>";
+        private const string StandardItalicOpenTag = "<em>";
+        private const string StandardUnderlineOpenTag = "<ins>";
+        private const string StandardUnderlineBoldOpenTag = "<ins><strong>";
+        private const string StandardCrossedOutOpenTag = "<del>";
+        private const string StandardNumberedListOpenTag = "<ol>";
+        private const string StandardUnNumberedListOpenTag = "<ul>";
+        private const string StandardListItemOpenTag = "<li>";
+        private const string StandardParagraphOpenTag = "<p>";
+        private const string StandardPreOpenTag = "<pre>";
+        private const string StandardCodeOpenTag = "<code>";
+        private const string StandardCitationOpenTag = "<citation>";
 
-        private readonly string StandartBoldItalicClosedTag = "</strong></em>";
-        private readonly string StandartBoldClosedTag = "</strong>";
-        private readonly string StandartItalicClosedTag = "</em>";
-        private readonly string StandartUnderlineClosedTag = "</ins>";
-        private readonly string StandartUnderlineBoldClosedTag = "</ins></strong>";
-        private readonly string StandartCrossedOutClosedTag = "</del>";
-        private readonly string StandartNumberedListClosedTag = "</ol>";
-        private readonly string StandartUnNumberedListClosedTag = "</ul>";
-        private readonly string StandartListItemClosedTag = "</li>";
-        private readonly string StandartParagraptClosedTag = "</p>";
-        private readonly string StandartPreClosedTag = "</pre>";
-        private readonly string StandartCodeClosedTag = "</code>";
-        private readonly string StandartCitationCloseTag = "</citation>";
+        private const string StandardBoldItalicClosedTag = "</strong></em>";
+        private const string StandardBoldClosedTag = "</strong>";
+        private const string StandardItalicClosedTag = "</em>";
+        private const string StandardUnderlineClosedTag = "</ins>";
+        private const string StandardUnderlineBoldClosedTag = "</ins></strong>";
+        private const string StandardCrossedOutClosedTag = "</del>";
+        private const string StandardNumberedListClosedTag = "</ol>";
+        private const string StandardUnNumberedListClosedTag = "</ul>";
+        private const string StandardListItemClosedTag = "</li>";
+        private const string StandardParagraphClosedTag = "</p>";
+        private const string StandardPreClosedTag = "</pre>";
+        private const string StandardCodeClosedTag = "</code>";
+        private const string StandardCitationCloseTag = "</citation>";
 
-        private string StandartNewLineTag = "<br />";
+        private const string StandardNewLineTag = "<br />";
 
         #endregion
 
         #region Tessa Tags
 
-        private readonly string TessaBoldItalicTag = "</span><span style=\\\"font-weight:bold;font-style:italic;\\\">";
-        private readonly string TessaBoldTag = "</span><span style=\\\"font-weight:bold;\\\">";
-        private readonly string TessaItalicTag = "</span><span style=\\\"font-style:italic;\\\">";
-        private readonly string TessaUnderlineTag = "</span><span style=\\\"text-decoration:underline;\\\">";
-        private readonly string TessaUnderlineBoldTag = "</span><span style=\\\"text-decoration:underline;font-weight:bold;\\\">";
-        private readonly string TessaCrossedOutTag = "</span><span style=\\\"text-decoration:line-through;\\\">";
-        private readonly string TessaNumberedListTag = "</span><ol class=\\\"forum-ol\\\">";
-        private readonly string TessaUnNumberedListTag = "</span><ul class=\\\"forum-ul\\\">";
-        private readonly string TessaListItemTag = "<li><p><span>";
-        private readonly string TessaParagraphTag = "<p><span>";
-        private readonly string TessaPreTag = "<div class=\\\"forum-block-monospace\\\"><p><span>";
-        private readonly string TessaCitationTag = "<div class=\"forum-quote\"><p><span>";
+        private const string TessaBoldItalicOpenTag = "</span><span style=\\\"font-weight:bold;font-style:italic;\\\">";
+        private const string TessaBoldOpenTag = "</span><span style=\\\"font-weight:bold;\\\">";
+        private const string TessaItalicOpenTag = "</span><span style=\\\"font-style:italic;\\\">";
+        private const string TessaUnderlineOpenTag = "</span><span style=\\\"text-decoration:underline;\\\">";
+        private const string TessaUnderlineBoldOpenTag = "</span><span style=\\\"text-decoration:underline;font-weight:bold;\\\">";
+        private const string TessaCrossedOutOpenTag = "</span><span style=\\\"text-decoration:line-through;\\\">";
+        private const string TessaNumberedListOpenTag = "</span><ol class=\\\"forum-ol\\\">";
+        private const string TessaUnNumberedListOpenTag = "</span><ul class=\\\"forum-ul\\\">";
+        private const string TessaListItemOpenTag = "<li><p><span>";
+        private const string TessaParagraphOpenTag = "<p><span>";
+        private const string TessaPreOpenTag = "<div class=\\\"forum-block-monospace\\\"><p><span>";
+        private const string TessaCitationOpenTag = "<div class=\"forum-quote\"><p><span>";
 
-        private readonly string TessaListItemClosedTag = "</span></p></li>";
-        private readonly string TessaParagraphClosedTag = "</span></p>";
-        private readonly string TessaPreCloseTag = "</span></p></div>";
-        private readonly string TessaCitationCloseTag = "</span></p></div>";
+        private const string TessaListItemClosedTag = "</span></p></li>";
+        private const string TessaParagraphClosedTag = "</span></p>";
+        private const string TessaPreCloseTag = "</span></p></div>";
+        private const string TessaCitationCloseTag = "</span></p></div>";
 
-        private readonly string TessaNewLineTag = "</span></p><p><span>";
+        private const string TessaNewLineTag = "</span></p><p><span>";
 
         #endregion
 
@@ -143,12 +143,10 @@ namespace TextileToTessaHTML
         /// Шаблон регулярного выражения открытия тега заголовка.
         /// </summary>
         private static readonly string headerOpenTagTemplate = @"<h[1-6]>";
-
         /// <summary>
         /// Шаблон регулярного выражения открытия тега заголовка.
         /// </summary>
         private static readonly string headerCloseTagTemplate = @"<\/h[1-6]>";
-
         /// <summary>
         /// Шаблон регулярного выражения для тега изображения (описание).
         /// </summary>
@@ -177,13 +175,11 @@ namespace TextileToTessaHTML
         /// Шаблон регулярного выражения для цитирования.
         /// </summary>
         private static readonly string citationTemplate = "\\n&gt;(.*?)\\r";
-
         /// <summary>
         /// Шаблон регулярного выражения для вложенного цитирования.
         /// </summary>
         private static readonly string nestedCitationTemplate = "<citation> &gt;(.*?)</citation>";
-
-
+        
         #endregion
 
         #region Regex
@@ -199,12 +195,12 @@ namespace TextileToTessaHTML
         private static readonly Regex _headerCloseTag = new Regex(headerCloseTagTemplate,
            RegexOptions.Singleline | RegexOptions.Compiled);
         /// <summary>
-        /// Регулярное выражение для секции тега изображения.
+        /// Регулярное выражение для секции тега изображения в описании.
         /// </summary>
         private static readonly Regex _imagesDescriptionTag = new Regex(imagesTagDescriptionTemplate,
             RegexOptions.Singleline | RegexOptions.Compiled);
         /// <summary>
-        /// Регулярное выражение для секции тега изображения.
+        /// Регулярное выражение для секции тега изображения в сообщении.
         /// </summary>
         private static readonly Regex _imagesTopicTag = new Regex(imagesTagTopicTemplate,
             RegexOptions.Singleline | RegexOptions.Compiled);
@@ -235,7 +231,7 @@ namespace TextileToTessaHTML
         private static readonly Regex _citation = new Regex(citationTemplate,
            RegexOptions.Singleline | RegexOptions.Compiled);
 
-        // <summary>
+        /// <summary>
         /// Регулярное выражение для вложенной цитаты.
         /// </summary>
         private static readonly Regex _nestedCitation = new Regex(nestedCitationTemplate,
@@ -252,48 +248,48 @@ namespace TextileToTessaHTML
         /// </summary>
         public Parser()
         {
-            this.InitialStandartTags();
-            this.InitialTessaTags();
+            InitialStandardTags();
+            InitialTessaTags();
         }
 
         #endregion
 
         /// <summary>
-        /// Получить преобразованную из "Textile" в "платформенные HTML" строку и список имен прикреаленных к этой строке файлов.
+        /// Получить преобразованную из "Textile" в "платформенные HTML" строку и список приложенных к этой строке идентификаторов файлов.
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
         /// <param name="issueDirectory">Расположение объекта "Инцидент" из редмайна.</param>
         /// <param name="attachedFileIssue">Прикрепленные к инциденту файлы.</param>
         /// <param name="isTopicText">Истина - это сообщение топика.</param>
-        /// <returns>Преобразованная строка и список имен прикреаленных к этой строке файлов.</returns>
-        public (string ResultString, List<Guid> AttachedFileId) GetParseToTessaHTMLString(
+        /// <returns>Преобразованная строка и список приложенных к этой строке идентификаторов файлов.</returns>
+        public (string ResultString, HashSet<Guid> AttachedFileIds) GetParseToTessaHtmlString(
             string mainString,
             string issueDirectory,
             Dictionary<Guid, (string, string)> attachedFileIssue,
             bool isTopicText = false)
         {
-            this.AttachedFileIds.Clear();
+            AttachedFileIds = new HashSet<Guid>();
 
-            if (String.IsNullOrWhiteSpace(mainString))
+            if (string.IsNullOrWhiteSpace(mainString))
             {
-                return (this.EmptyString, this.AttachedFileIds);
+                return (EmptyString, AttachedFileIds);
             }
             
-            this.AttachedFilesIssue = attachedFileIssue;
-            this.AttachmentsString = "";
+            AttachedFilesIssue = attachedFileIssue;
+            AttachmentsString = "";
 
-            var resultString = this.TextileParseString(mainString, isTopicText);
+            var resultString = TextileParseString(mainString, isTopicText);
             if (!isTopicText)
             {
                 resultString = resultString.Replace("\"", "&#8220;");
             }
-            resultString = this.StandartHTMLParseString(
+            resultString = StandardHtmlParseString(
                 resultString,
                 issueDirectory,
                 isTopicText);
             resultString = resultString.Replace("\n", TessaNewLineTag);
 
-            return (resultString, this.AttachedFileIds);
+            return (resultString, AttachedFileIds);
         }
 
         #region Private methods
@@ -303,39 +299,39 @@ namespace TextileToTessaHTML
         /// <summary>
         /// Инициализация стандартных HTML тегов.
         /// </summary>
-        private void InitialStandartTags()
+        private void InitialStandardTags()
         {
-            StandartOpeningTags.Clear();
-            StandartClosingTags.Clear();
+            StandardOpeningTags.Clear();
+            StandardClosingTags.Clear();
 
             // тут важен порядок добавления.
-            StandartOpeningTags.Add(ParagraphTagName, StandartParagraphTag);
-            StandartOpeningTags.Add(BoldItalicTagName, StandartBoldItalicTag);
-            StandartOpeningTags.Add(UnderlineBoldTagName, StandartUnderlineBoldTag);
-            StandartOpeningTags.Add(BoldTagName, StandartBoldTag);
-            StandartOpeningTags.Add(ItalicTagName, StandartItalicTag);
-            StandartOpeningTags.Add(UnderlineTagName, StandartUnderlineTag);
-            StandartOpeningTags.Add(CrossedOutTagName, StandartCrossedOutTag);
-            StandartOpeningTags.Add(NumberedListTagName, StandartNumberedListTag);
-            StandartOpeningTags.Add(UnNumberedListTagName, StandartUnNumberedListTag);
-            StandartOpeningTags.Add(ListItemTagName, StandartListItemTag);
-            StandartOpeningTags.Add(PreTagName, StandartPreTag);
-            StandartOpeningTags.Add(CodeTagName, StandartCodeTag);
-            StandartOpeningTags.Add(CitationTagName, StandartCitationTag);
+            StandardOpeningTags.Add(ParagraphTagName, StandardParagraphOpenTag);
+            StandardOpeningTags.Add(BoldItalicTagName, StandardBoldItalicOpenTag);
+            StandardOpeningTags.Add(UnderlineBoldTagName, StandardUnderlineBoldOpenTag);
+            StandardOpeningTags.Add(BoldTagName, StandardBoldOpenTag);
+            StandardOpeningTags.Add(ItalicTagName, StandardItalicOpenTag);
+            StandardOpeningTags.Add(UnderlineTagName, StandardUnderlineOpenTag);
+            StandardOpeningTags.Add(CrossedOutTagName, StandardCrossedOutOpenTag);
+            StandardOpeningTags.Add(NumberedListTagName, StandardNumberedListOpenTag);
+            StandardOpeningTags.Add(UnNumberedListTagName, StandardUnNumberedListOpenTag);
+            StandardOpeningTags.Add(ListItemTagName, StandardListItemOpenTag);
+            StandardOpeningTags.Add(PreTagName, StandardPreOpenTag);
+            StandardOpeningTags.Add(CodeTagName, StandardCodeOpenTag);
+            StandardOpeningTags.Add(CitationTagName, StandardCitationOpenTag);
 
-            StandartClosingTags.Add(ParagraphTagName, StandartParagraptClosedTag);
-            StandartClosingTags.Add(BoldItalicTagName, StandartBoldItalicClosedTag);
-            StandartClosingTags.Add(UnderlineBoldTagName, StandartUnderlineBoldClosedTag);
-            StandartClosingTags.Add(BoldTagName, StandartBoldClosedTag);
-            StandartClosingTags.Add(ItalicTagName, StandartItalicClosedTag);
-            StandartClosingTags.Add(UnderlineTagName, StandartUnderlineClosedTag);
-            StandartClosingTags.Add(CrossedOutTagName, StandartCrossedOutClosedTag);
-            StandartClosingTags.Add(NumberedListTagName, StandartNumberedListClosedTag);
-            StandartClosingTags.Add(UnNumberedListTagName, StandartUnNumberedListClosedTag);
-            StandartClosingTags.Add(ListItemTagName, StandartListItemClosedTag);
-            StandartClosingTags.Add(PreTagName, StandartPreClosedTag);
-            StandartClosingTags.Add(CodeTagName, StandartCodeClosedTag);
-            StandartClosingTags.Add(CitationTagName, StandartCitationCloseTag);
+            StandardClosingTags.Add(ParagraphTagName, StandardParagraphClosedTag);
+            StandardClosingTags.Add(BoldItalicTagName, StandardBoldItalicClosedTag);
+            StandardClosingTags.Add(UnderlineBoldTagName, StandardUnderlineBoldClosedTag);
+            StandardClosingTags.Add(BoldTagName, StandardBoldClosedTag);
+            StandardClosingTags.Add(ItalicTagName, StandardItalicClosedTag);
+            StandardClosingTags.Add(UnderlineTagName, StandardUnderlineClosedTag);
+            StandardClosingTags.Add(CrossedOutTagName, StandardCrossedOutClosedTag);
+            StandardClosingTags.Add(NumberedListTagName, StandardNumberedListClosedTag);
+            StandardClosingTags.Add(UnNumberedListTagName, StandardUnNumberedListClosedTag);
+            StandardClosingTags.Add(ListItemTagName, StandardListItemClosedTag);
+            StandardClosingTags.Add(PreTagName, StandardPreClosedTag);
+            StandardClosingTags.Add(CodeTagName, StandardCodeClosedTag);
+            StandardClosingTags.Add(CitationTagName, StandardCitationCloseTag);
         }
 
         /// <summary>
@@ -346,19 +342,19 @@ namespace TextileToTessaHTML
             TessaOpeningTags.Clear();
             TessaClosingTags.Clear();
 
-            TessaOpeningTags.Add(ParagraphTagName, TessaParagraphTag);
-            TessaOpeningTags.Add(BoldItalicTagName, TessaBoldItalicTag);
-            TessaOpeningTags.Add(UnderlineBoldTagName, TessaUnderlineBoldTag);
-            TessaOpeningTags.Add(BoldTagName, TessaBoldTag);
-            TessaOpeningTags.Add(ItalicTagName, TessaItalicTag);
-            TessaOpeningTags.Add(UnderlineTagName, TessaUnderlineTag);
-            TessaOpeningTags.Add(CrossedOutTagName, TessaCrossedOutTag);
-            TessaOpeningTags.Add(NumberedListTagName, TessaNumberedListTag);
-            TessaOpeningTags.Add(UnNumberedListTagName, TessaUnNumberedListTag);
-            TessaOpeningTags.Add(ListItemTagName, TessaListItemTag);
-            TessaOpeningTags.Add(PreTagName, TessaPreTag);
-            TessaOpeningTags.Add(CodeTagName, TessaPreTag);
-            TessaOpeningTags.Add(CitationTagName, TessaCitationTag);
+            TessaOpeningTags.Add(ParagraphTagName, TessaParagraphOpenTag);
+            TessaOpeningTags.Add(BoldItalicTagName, TessaBoldItalicOpenTag);
+            TessaOpeningTags.Add(UnderlineBoldTagName, TessaUnderlineBoldOpenTag);
+            TessaOpeningTags.Add(BoldTagName, TessaBoldOpenTag);
+            TessaOpeningTags.Add(ItalicTagName, TessaItalicOpenTag);
+            TessaOpeningTags.Add(UnderlineTagName, TessaUnderlineOpenTag);
+            TessaOpeningTags.Add(CrossedOutTagName, TessaCrossedOutOpenTag);
+            TessaOpeningTags.Add(NumberedListTagName, TessaNumberedListOpenTag);
+            TessaOpeningTags.Add(UnNumberedListTagName, TessaUnNumberedListOpenTag);
+            TessaOpeningTags.Add(ListItemTagName, TessaListItemOpenTag);
+            TessaOpeningTags.Add(PreTagName, TessaPreOpenTag);
+            TessaOpeningTags.Add(CodeTagName, TessaPreOpenTag);
+            TessaOpeningTags.Add(CitationTagName, TessaCitationOpenTag);
 
             TessaClosingTags.Add(ParagraphTagName, TessaParagraphClosedTag);
             TessaClosingTags.Add(BoldItalicTagName, SpanClosedTag);
@@ -367,8 +363,8 @@ namespace TextileToTessaHTML
             TessaClosingTags.Add(ItalicTagName, SpanClosedTag);
             TessaClosingTags.Add(UnderlineTagName, SpanClosedTag);
             TessaClosingTags.Add(CrossedOutTagName, SpanClosedTag);
-            TessaClosingTags.Add(NumberedListTagName, StandartNumberedListClosedTag);
-            TessaClosingTags.Add(UnNumberedListTagName, StandartUnNumberedListClosedTag);
+            TessaClosingTags.Add(NumberedListTagName, StandardNumberedListClosedTag);
+            TessaClosingTags.Add(UnNumberedListTagName, StandardUnNumberedListClosedTag);
             TessaClosingTags.Add(ListItemTagName, TessaListItemClosedTag);
             TessaClosingTags.Add(PreTagName, TessaPreCloseTag);
             TessaClosingTags.Add(CodeTagName, TessaPreCloseTag);
@@ -378,55 +374,53 @@ namespace TextileToTessaHTML
         #endregion
 
         /// <summary>
-        /// Преобразование исходной строки в стандартый HTML формат.
+        /// Преобразование исходной строки в стандартный HTML формат.
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
         /// <param name="isTopicText">Истина - преобразование в сообщениях.</param>
         /// <returns>Преобразованная строка.</returns>
-        private string TextileParseString(string mainString, bool isTopicText = false)
+        private static string TextileParseString(string mainString, bool isTopicText = false)
         {
-            string resultString = mainString;
-
             // преобразуем "пользовательские символы" в html символы.
-            resultString = resultString.Replace("--->", "&#129042;");
-            resultString = resultString.Replace("---", "&mdash;");
-            resultString = resultString.Replace("->", "&#129046;");
+            mainString = mainString.Replace("--->", "&#129042;");
+            mainString = mainString.Replace("---", "&mdash;");
+            mainString = mainString.Replace("->", "&#129046;");
             
-            // если cтрока начинается с цитаты,
+            // если строка начинается с цитаты,
             // для верной отработки регулярного выражения добавляем:
             // - в начало комбинацию "новая строка";
-            if (resultString[0] == '>')
+            if (mainString[0] == '>')
             {
-                resultString = resultString.Insert(0, "\r\n");
+                mainString = mainString.Insert(0, "\r\n");
             }
             // - в конец символы переноса строки.
-            resultString = resultString + "\r\n";
+            mainString += "\r\n";
 
             // все блоки кода приводим к единому егу "@code" и "/@code".
-            resultString = this.ParsePreCodeTags(resultString);
-            resultString = this.ParseCollapseTags(resultString);
+            mainString = ParsePreCodeTags(mainString);
+            mainString = ParseCollapseTags(mainString);
             // преобразуем символы "<" и ">" в символы "&lt;" и "&gt;".
-            resultString = resultString.Replace("<", @"&lt;");
-            resultString = resultString.Replace(">", @"&gt;");
+            mainString = mainString.Replace("<", @"&lt;");
+            mainString = mainString.Replace(">", @"&gt;");
             
-            resultString = resultString.Replace("[", @"&#91;");
-            resultString = resultString.Replace("]", @"&#93;");
-            // преобразуем собсвенные теги кода в теги <code>.
-            resultString = resultString.Replace("@code", "<code>");
-            resultString = resultString.Replace("@/code", "</code>");
+            mainString = mainString.Replace("[", @"&#91;");
+            mainString = mainString.Replace("]", @"&#93;");
+            // преобразуем собственные теги кода в теги <code>.
+            mainString = mainString.Replace("@code", "<code>");
+            mainString = mainString.Replace("@/code", "</code>");
             if (isTopicText)
             {
-                resultString = this.ParseCitationSection(resultString);
+                mainString = ParseCitationSection(mainString);
             }
             // преобразуем строку в стандартный HTML.
-            resultString = TextileToHTML.TextileFormatter.FormatString(resultString);
+            mainString = TextileToHTML.TextileFormatter.FormatString(mainString);
 
-            resultString = this.RemoveSumbolNewString(resultString);
+            mainString = RemoveSymbolNewString(mainString);
 
-            // подчищаем символ "&amp;", которые сгенирировался в процессе преобразования textile в HTML.
-            resultString = resultString.Replace("&amp;", "&");
+            // подчищаем символ "&amp;", которые генерировался в процессе преобразования textile в HTML.
+            mainString = mainString.Replace("&amp;", "&");
 
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
@@ -436,69 +430,70 @@ namespace TextileToTessaHTML
         /// <param name="issueDirectory">Расположение объекта "Инцидент" из редмайна.</param>
         /// <param name="isTopicText">Это сообщение топика.</param>
         /// <returns>Преобразованная строка.</returns>
-        private string StandartHTMLParseString(
+        private string StandardHtmlParseString(
             string mainString,
             string issueDirectory,
             bool isTopicText = false)
         {
-            string resultString = mainString;
-
             if (!isTopicText)
             {
-                resultString = this.ParseSlashesSyblol(resultString);
+                mainString = ParseSlashesSymbol(mainString);
             }
 
             foreach (var tag in TessaOpeningTags)
             {
-                resultString = this.ParseTag(resultString, tag);
+                mainString = ParseTag(mainString, tag);
             }
 
             // преобразуем тег <br /> в </p><p>.
-            resultString = resultString.Replace(StandartNewLineTag, TessaNewLineTag, StringComparison.CurrentCulture);
+            mainString = mainString.Replace(StandardNewLineTag, TessaNewLineTag, StringComparison.CurrentCulture);
             
             // преобразуем заголовки.
-            resultString = ParseHeaderString(resultString);
+            mainString = ParseHeaderString(mainString);
 
-            while (TryGetMathes(resultString, isTopicText ? _imagesTopicTag : _imagesDescriptionTag, out var matches))
+            while (TryGetMatсhes(mainString, isTopicText ? _imagesTopicTag : _imagesDescriptionTag, out var matches))
             {
-                resultString = this.ParseAttachmentImages(resultString, matches[0], issueDirectory, isTopicText);
+                mainString = ParseAttachmentImages(mainString, matches[0], issueDirectory, isTopicText);
             }
 
-            resultString = isTopicText switch
+            mainString = isTopicText switch
             {
                 // т.к верстка в сообщениях отличается от верстки в описании
                 // преобразуем код "&#8220" и "&#8221" в символы "\\\"".
-                false => ParseQuotesSymbol(resultString),
-                true => resultString.Replace("\\\"", "\"")
+                false => ParseQuotesSymbol(mainString),
+                true => mainString.Replace("\\\"", "\"")
             };
 
-            resultString = this.ParsingHttpLink(resultString, isTopicText);
+            mainString = ParsingHttpLink(mainString, isTopicText);
 
-            // TODO: инлайн код блоки превращаем в жирный текст.
-            resultString = this.ParseInlineTags(resultString);
+            // инлайн код блоки превращаем в жирный текст.
+            mainString = ParseInlineTags(mainString);
 
             // установка начала и конца строки.
-            resultString = this.SetPreAndPostString(resultString, isTopicText);
+            mainString = SetPreAndPostString(mainString, isTopicText);
 
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
         /// Заменяет тег стандартного HTML на тег TESSA HTML.
         /// </summary>
+        /// <param name="mainString">Строка для преобразования.</param>
         /// <param name="tag">Ключ и значение стандартного HTML тега.</param>
+        /// <returns>Преобразованная строка.</returns>
         private string ParseTag(string mainString, KeyValuePair<string, string> tag)
         {
-            string resultString = mainString;
-            string tagName = tag.Key;
+            var tagName = tag.Key;
 
-            if (resultString.Contains(StandartOpeningTags[tag.Key]))
+            if (!mainString.Contains(StandardOpeningTags[tag.Key]))
             {
-                resultString = resultString.Replace(StandartOpeningTags[tagName], TessaOpeningTags[tagName]);
-                resultString = resultString.Replace(StandartClosingTags[tagName], TessaClosingTags[tagName]);
+                return mainString;
             }
+            
+            mainString = mainString.Replace(StandardOpeningTags[tagName], TessaOpeningTags[tagName]);
+            mainString = mainString.Replace(StandardClosingTags[tagName], TessaClosingTags[tagName]);
 
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
@@ -506,25 +501,24 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
         /// <returns>Преобразованная строка.</returns>
-        private string ParsePreCodeTags(string mainString)
+        private static string ParsePreCodeTags(string mainString)
         {
-            string resultString = mainString;
             // для корректного преобразования символов сравнения используем собственные теги.
-            while (Regex.IsMatch(resultString, preCodeTagsTemplate, RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline | RegexOptions.Compiled))
+            while (Regex.IsMatch(mainString, preCodeTagsTemplate, RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline | RegexOptions.Compiled))
             {
-                resultString = _preCodeTag.Replace(resultString, "@code");
+                mainString = _preCodeTag.Replace(mainString, "@code");
             }
-            resultString = resultString.Replace("</code></pre>", "@/code");
+            mainString = mainString.Replace("</code></pre>", "@/code");
             
             // если в <pre> есть пример тега <pre>
             // - второй тег заключаем к символы html.
-            resultString = resultString.Replace("<pre><pre>", "<pre>&lt;pre&gt;");
-            resultString = resultString.Replace("</pre></pre>", "&lt;/pre&gt;</pre>");
+            mainString = mainString.Replace("<pre><pre>", "<pre>&lt;pre&gt;");
+            mainString = mainString.Replace("</pre></pre>", "&lt;/pre&gt;</pre>");
             
-            resultString = resultString.Replace("<pre>", "@code");
-            resultString = resultString.Replace("</pre>", "@/code");
+            mainString = mainString.Replace("<pre>", "@code");
+            mainString = mainString.Replace("</pre>", "@/code");
 
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
@@ -532,21 +526,19 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
         /// <returns>Преобразованная строка.</returns>
-        private string ParseInlineTags(string mainString)
+        private static string ParseInlineTags(string mainString)
         {
-            string resultString = mainString;
-
             // сначала для @...@ делаем теги "inlinecode".
             // ">@" - любой тег перед "@".
             // "@<" - любой тег после "@".
-            resultString = resultString.Replace(">@", "><inlinecode>");
-            resultString = resultString.Replace("@<", "</inlinecode><");
+            mainString = mainString.Replace(">@", "><inlinecode>");
+            mainString = mainString.Replace("@<", "</inlinecode><");
 
             // меняем все "inlinecode" теги на жирный шрифт.
-            resultString = resultString.Replace("<inlinecode>", "<span style=\"font-weight:bold;\">");
-            resultString = resultString.Replace("</inlinecode>", "</span>");
+            mainString = mainString.Replace("<inlinecode>", "<span style=\"font-weight:bold;\">");
+            mainString = mainString.Replace("</inlinecode>", "</span>");
 
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
@@ -555,21 +547,19 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="mainString"></param>
         /// <returns></returns>
-        private string ParseCollapseTags(string mainString)
+        private static string ParseCollapseTags(string mainString)
         {
-            string resultString = mainString;
-
-            while (this.TryGetMathes(resultString, _collapseTag, out MatchCollection matches))
+            while (TryGetMatсhes(mainString, _collapseTag, out MatchCollection matches))
             {
                 foreach (Match match in matches)
                 {
-                    resultString = resultString.Replace(match.Value, match.Groups[1].Value);
+                    mainString = mainString.Replace(match.Value, match.Groups[1].Value);
                 }
             }
 
-            resultString = resultString.Replace("}}", "");
+            mainString = mainString.Replace("}}", "");
 
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
@@ -577,19 +567,21 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
         /// <returns>Шаблоны и результирующую строку для преобразования в секции кода.</returns>
-        private (MatchCollection matches, string resultString) RemoveCodeSection(string mainString)
+        private static (MatchCollection matches, string resultString) RemoveCodeSection(string mainString)
         {
-            string resultString = mainString;
-            (MatchCollection matches, string resultString) result = (null, resultString);
-            if (this.TryGetMathes(mainString, _codeSection, out MatchCollection matches))
+            (MatchCollection matches, string resultString) result = (null, mainString);
+
+            if (!TryGetMatсhes(mainString, _codeSection, out MatchCollection matches))
             {
-                for (int i = matches.Count - 1; i >= 0; i--)
-                {
-                    resultString = resultString.Replace(matches[i].Value, $"@codeBloc{i}");
-                }
-                result.matches = matches;
-                result.resultString = resultString;
+                return result;
             }
+ 
+            for (var i = matches.Count - 1; i >= 0; i--)
+            {
+                mainString = mainString.Replace(matches[i].Value, $"@codeBloc{i}");
+            }
+            result.matches = matches;
+            result.resultString = mainString;
 
             return result;
         }
@@ -599,70 +591,56 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
         /// <returns>Преобразованная строка.</returns>
-        private string ParseCitationSection(string mainString)
+        private static string ParseCitationSection(string mainString)
         {
-            string resultString = mainString;
-
             // преобразовываем внешние цитаты.
-            while (this.TryGetMathes(resultString, _citation, out MatchCollection matches))
+            while (TryGetMatсhes(mainString, _citation, out MatchCollection matches))
             {
                 var match = matches[0];
-                var citationMessage = this.ParseCitationText(match.Groups[1].Value);
-                if (!String.IsNullOrWhiteSpace(citationMessage))
-                {
-                    resultString = resultString.Replace(match.Groups[0].Value, $"<citation>{citationMessage}</citation>");
-                }
-                else
-                {
-                    resultString = resultString.Remove(match.Index, match.Length);
-                }
+                var citationMessage = ParseCitationText(match.Groups[1].Value);
+                mainString = !string.IsNullOrWhiteSpace(citationMessage) 
+                    ? mainString.Replace(match.Groups[0].Value, $"<citation>{citationMessage}</citation>") 
+                    : mainString.Remove(match.Index, match.Length);
             }
 
             // преобразовываем вложенные цитаты.
-            while (this.TryGetMathes(resultString, _nestedCitation, out MatchCollection matches))
+            while (TryGetMatсhes(mainString, _nestedCitation, out MatchCollection matches))
             {
                 var match = matches[0];
                 var citationMessage = match.Groups[1].Value;
-                if (!String.IsNullOrWhiteSpace(citationMessage))
-                {
-                    resultString = resultString.Replace(match.Groups[0].Value, $"<citation><citation>{citationMessage}</citation></citation>");
-                }
-                else
-                {
-                    resultString = resultString.Remove(match.Index, match.Length);
-                }
+                mainString = !string.IsNullOrWhiteSpace(citationMessage) 
+                    ? mainString.Replace(match.Groups[0].Value, $"<citation><citation>{citationMessage}</citation></citation>") 
+                    : mainString.Remove(match.Index, match.Length);
             }
 
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
         /// Заменяет заглушки секций кода на код.
         /// </summary>
-        /// <param name="mainString">Строка для преобразованя.</param>
+        /// <param name="mainString">Строка для преобразования.</param>
         /// <param name="matches">Шаблоны секций кода.</param>
         /// <returns></returns>
-        private string AddCodeSection(string mainString, MatchCollection matches)
+        private static string AddCodeSection(string mainString, MatchCollection matches)
         {
             if (matches == null)
             {
                 return mainString;
             }
 
-            string resultString = mainString;
-
-            for (int i = matches.Count - 1; i >= 0; i--)
+            for (var i = matches.Count - 1; i >= 0; i--)
             {
-                resultString = resultString.Replace($"@codeBloc{i}", matches[i].Value);
+                mainString = mainString.Replace($"@codeBloc{i}", matches[i].Value);
             }
 
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
-        /// Преобзазовывает один символ "\" в два символа "\\".
+        /// Преобразовать один символ "\" в два символа "\\".
         /// </summary>
-        private string ParseSlashesSyblol(string mainString)
+        private static string ParseSlashesSymbol(string mainString)
         {
             return mainString.Replace(@"\", @"\\");
         }
@@ -672,56 +650,36 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
         /// <returns>Преобразованная строка.</returns>
-        private string RemoveSumbolNewString(string mainString)
+        private static string RemoveSymbolNewString(string mainString)
         {
-            string resultString = mainString;
             MatchCollection matches;
 
-            (matches, resultString) = this.RemoveCodeSection(mainString);
+            (matches, mainString) = RemoveCodeSection(mainString);
 
             //TODO: делаем не через Remove() т.к на "ничего" нельзя заменить.
-            var symbolIndex = resultString.IndexOf('\n');
+            var symbolIndex = mainString.IndexOf('\n');
             while (symbolIndex != -1)
             {
-                resultString = resultString.Remove(symbolIndex, 1);
-                symbolIndex = resultString.IndexOf('\n');
+                mainString = mainString.Remove(symbolIndex, 1);
+                symbolIndex = mainString.IndexOf('\n');
             }
 
-            resultString = this.AddCodeSection(resultString, matches);
+            mainString = AddCodeSection(mainString, matches);
 
-            return resultString;
-        }
-
-        /// <summary>
-        /// Преобразование тега новой строки из стандартного HTML в TESSA HTML.
-        /// </summary>
-        /// <param name="mainString">Строка для преобразования.</param>
-        /// <returns>Преобразованная строка.</returns>
-        private string ParseNewLineTag(string mainString)
-        {
-            string resultString = mainString;
-
-            if (resultString.Contains(StandartNewLineTag))
-            {
-                resultString = resultString.Replace(StandartNewLineTag, TessaNewLineTag);
-            }
-
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
         /// Преобразовать код "&#8220" и "&#8221" в символы "\\\"".
         /// </summary>
-        /// <param name="mainString">Строка для преобразоваия.</param>
+        /// <param name="mainString">Строка для преобразования.</param>
         /// <returns>Преобразованная строка.</returns>
-        private string ParseQuotesSymbol(string mainString)
+        private static string ParseQuotesSymbol(string mainString)
         {
-            string resultString = mainString;
+            mainString = mainString.Replace("&#8220;", "\\\"");
+            mainString = mainString.Replace("&#8221;", "\\\"");
 
-            resultString = resultString.Replace("&#8220;", "\\\"");
-            resultString = resultString.Replace("&#8221;", "\\\"");
-
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
@@ -729,46 +687,40 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="mainString">Строка для преобразования.</param>
         /// <returns>Преобразованная строка.</returns>
-        private string ParseHeaderString(string mainString)
+        private static string ParseHeaderString(string mainString)
         {
-            string resultString = mainString;
-
-            while (Regex.IsMatch(resultString, headerOpenTagTemplate, RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline | RegexOptions.Compiled))
+            while (Regex.IsMatch(mainString, headerOpenTagTemplate, RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline | RegexOptions.Compiled))
             {
-                resultString = _headerOpenTag.Replace(resultString, "<p><span style=\\\"font-weight:bold;\\\" data-custom-style=\\\"font-size:18;\\\">");
+                mainString = _headerOpenTag.Replace(mainString, "<p><span style=\\\"font-weight:bold;\\\" data-custom-style=\\\"font-size:18;\\\">");
             }
-            while (Regex.IsMatch(resultString, headerCloseTagTemplate, RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline | RegexOptions.Compiled))
+            while (Regex.IsMatch(mainString, headerCloseTagTemplate, RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline | RegexOptions.Compiled))
             {
-                resultString = _headerCloseTag.Replace(resultString, "</span></p>");
+                mainString = _headerCloseTag.Replace(mainString, "</span></p>");
             }
 
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
         /// Получить совпадения с шаблоном regex в в строке.
         /// </summary>
         /// <param name="mainString">Строка для проверки.</param>
-        /// <param name="_regex">Регулярное выражение.</param>
-        /// <param name="matchCollection">Списко совпадений с шаблоном.</param>
+        /// <param name="regex">Регулярное выражение.</param>
+        /// <param name="matchCollection">Список совпадений с шаблоном.</param>
         /// <returns>Истина - удалось получить.</returns>
-        private bool TryGetMathes(
+        private static bool TryGetMatсhes(
             string mainString,
-            Regex _regex,
+            Regex regex,
             out MatchCollection matchCollection)
         {
-            matchCollection = _regex.Matches(mainString);
-            if (matchCollection.Count > 0)
-            {
-                return true;
-            }
-            return false;
+            matchCollection = regex.Matches(mainString);
+            return matchCollection.Count > 0;
         }
 
         /// <summary>
         /// Преобразование строк с прикрепленными изображениями.
         /// </summary>
-        /// <param name="mainString">Сторока для преобразования.</param>
+        /// <param name="mainString">Строка для преобразования.</param>
         /// <param name="matchImages">Совпадение с шаблоном регулярного выражения.</param>
         /// <param name="issueDirectory">Расположение файла инцидента.</param>
         /// <param name="isTopicText">Истина - это сообщение из топика.</param>
@@ -781,47 +733,49 @@ namespace TextileToTessaHTML
         {
             if (matchImages.Groups[1].Value.Contains("http"))
             {
-                string resultString = mainString;
-                resultString = resultString.Replace(matchImages.Value, matchImages.Groups[1].Value);
-                return resultString;
+                mainString = mainString.Replace(matchImages.Value, matchImages.Groups[1].Value);
+                return mainString;
             }
 
-            string fileName = matchImages.Groups[1].Value;
-            this.AttachedFileIds.Add(AttachedFilesIssue.Where(a => a.Value.Item1 == fileName).Select(x => x.Key).First());
-            // TODO: т.к файлы с id перед наименованием - получаем путь к файлы с помощью Directory.
-            var fileDirectory = Directory.GetFiles(issueDirectory, AttachedFilesIssue.Where(a => a.Value.Item1 == fileName).Select(x => x.Value.Item2).First());
+            var fileName = matchImages.Groups[1].Value;
+            AttachedFileIds.Add(AttachedFilesIssue.Where(a => string.Equals(a.Value.Name, fileName, StringComparison.CurrentCultureIgnoreCase)).Select(x => x.Key).First());
+            
+            var fileDirectory = Directory.GetFiles(issueDirectory, AttachedFilesIssue
+                .Where(a => string.Equals(a.Value.Name, fileName, StringComparison.CurrentCultureIgnoreCase))
+                .Select(x => x.Value.FileName).First());
+            
             // Строка генерируется только в описании. Для топика такая строка не нужна.
             if (!isTopicText)
             {
-                this.GenerateAttachemntsString(fileName);
+                GenerateAttachmentsString(fileName);
             }
 
-            return this.ParseAttachments(mainString, fileDirectory[0], fileName, isTopicText, matchImages);
+            return ParseAttachments(mainString, fileDirectory[0], fileName, matchImages);
         }
 
         /// <summary>
         /// Создает строку Attachments.
         /// </summary>
         /// <param name="fileName">Имя файла.</param>
-        private void GenerateAttachemntsString(string fileName)
+        private void GenerateAttachmentsString(string fileName)
         {
-            var id = this.AttachedFilesIssue.Where(a => a.Value.Item1 == fileName).Select(x => x.Key).First();
+            var id = AttachedFilesIssue.Where(a => string.Equals(a.Value.Name, fileName, StringComparison.CurrentCultureIgnoreCase)).Select(x => x.Key).First();
             var caption = id.ToString().Replace("-", "");
             var uri = $"https:\\\\{caption}";
 
-            if (this.AttachmentsString != "")
+            if (AttachmentsString != "")
             {
-                this.AttachmentsString += ",";
+                AttachmentsString += ",";
             }
 
-            this.AttachmentsString +=
-                    $"{{\"Caption\":\"{caption}\"," +
-                    $"\"FileName\":\"\"," +
-                    $"\"Uri\":\"{uri}\"," +
-                    $"\"ID::uid\":\"{id}\"," +
-                    $"\"MessageID::uid\":\"00000000-0000-0000-0000-000000000000\"," +
-                    $"\"StoreMode::int\":0," +
-                    $"\"Type::int\":2}}";
+            AttachmentsString +=
+                $"{{\"Caption\":\"{caption}\"," +
+                $"\"FileName\":\"\"," +
+                $"\"Uri\":\"{uri}\"," +
+                $"\"ID::uid\":\"{id}\"," +
+                $"\"MessageID::uid\":\"00000000-0000-0000-0000-000000000000\"," +
+                $"\"StoreMode::int\":0," +
+                $"\"Type::int\":2}}";
         }
 
         /// <summary>
@@ -836,65 +790,49 @@ namespace TextileToTessaHTML
             string mainString,
             string fileDirectory,
             string fileName,
-            bool isTopicText,
             Match match)
         {
-            string resultString = mainString;
-
-            var id =  this.AttachedFilesIssue.Where(a => a.Value.Item1 == fileName).Select(x => x.Key).First();
-            string caption;
-            if (!isTopicText)
-            {
-                caption = id.ToString().Replace("-", "");
-            }
-            else
-            {
-                caption = fileName;
-            }
+            var id =  AttachedFilesIssue.Where(a => string.Equals(a.Value.Name, fileName, StringComparison.CurrentCultureIgnoreCase)).Select(x => x.Key).First();
             var mainImage = Image.FromFile(fileDirectory);
-            var resizeImage = this.ResizeImage(mainImage, (int)(mainImage.Width * 0.3), (int)(mainImage.Height * 0.3));
+            var resizeImage = ResizeImage(mainImage, (int)(mainImage.Width * 0.3), (int)(mainImage.Height * 0.3));
 
-            var base64FileString = this.GetBase64StringFromInage(resizeImage);
+            var base64FileString = GetBase64StringFromImage(resizeImage);
 
             var textString =
                 $"<p><span><img data-custom-style=\\\"width:{resizeImage.Width};height:{resizeImage.Height};\\\" " +
                 $"name=\\\"{id:N}\\\" " +
                 $"src=\\\"data:image/png;base64,{base64FileString}\\\"></span></p>";
 
-            resultString = resultString.Remove(match.Index, match.Length);
-            resultString = resultString.Insert(match.Index, textString);
+            mainString = mainString.Remove(match.Index, match.Length);
+            mainString = mainString.Insert(match.Index, textString);
 
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
-        /// Resize the image to the specified width and height.
+        /// Изменение размера изображения до указанной ширины и высоты.
         /// </summary>
-        /// <param name="image">The image to resize.</param>
-        /// <param name="width">The width to resize to.</param>
-        /// <param name="height">The height to resize to.</param>
-        /// <returns>The resized image.</returns>
-        private Bitmap ResizeImage(Image image, int width, int height)
+        /// <param name="image">Изображение.</param>
+        /// <param name="width">Ширина.</param>
+        /// <param name="height">Высота.</param>
+        /// <returns>Изображение с измененными размерами.</returns>
+        private static Bitmap ResizeImage(Image image, int width, int height)
         {
             var destRect = new Rectangle(0, 0, width, height);
             var destImage = new Bitmap(width, height);
 
             destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
 
-            using (var graphics = Graphics.FromImage(destImage))
-            {
-                graphics.CompositingMode = CompositingMode.SourceCopy;
-                graphics.CompositingQuality = CompositingQuality.HighQuality;
-                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                graphics.SmoothingMode = SmoothingMode.HighQuality;
-                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            using var graphics = Graphics.FromImage(destImage);
+            graphics.CompositingMode = CompositingMode.SourceCopy;
+            graphics.CompositingQuality = CompositingQuality.HighQuality;
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.SmoothingMode = SmoothingMode.HighQuality;
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-                using (var wrapMode = new ImageAttributes())
-                {
-                    wrapMode.SetWrapMode(WrapMode.TileFlipXY);
-                    graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
-                }
-            }
+            using var wrapMode = new ImageAttributes();
+            wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+            graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
 
             return destImage;
         }
@@ -904,49 +842,34 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="image">Изображение.</param>
         /// <returns>Строка Base64.</returns>
-        private string GetBase64StringFromInage(Image image)
+        private static string GetBase64StringFromImage(Image image)
         {
-            string base64String = null;
+            using var ms = new MemoryStream();
+            image.Save(ms, ImageFormat.Jpeg);
 
-            using (MemoryStream ms = new MemoryStream())
-            {
-                image.Save(ms, ImageFormat.Jpeg);
-                base64String = Convert.ToBase64String(ms.ToArray());
-            }
-
-            return base64String;
-        }
-
-        /// <summary>
-        /// Преобразуем символы "\\" в одиночный символ "\".
-        /// </summary>
-        /// <param name="mainString">Строка для преобразования.</param>
-        /// <returns>Преобразованная строка.</returns>
-        private string RemoveSlachSyblol(string mainString)
-        {
-            return mainString.Replace("\\\"", "\"");
+            return Convert.ToBase64String(ms.ToArray());
         }
 
         /// <summary>
         /// Установка начала и конца строки.
         /// </summary>
+        /// <param name="mainString">Строка для преобразования.</param>
+        /// <param name="isTopicText">Истина - сообщение топика.</param>
         private string SetPreAndPostString(string mainString, bool isTopicText)
         {
-            string resultString = mainString;
-
-            if (this.AttachmentsString != "" && this.AttachmentsString != "{")
+            if (AttachmentsString != "" && AttachmentsString != "{")
             {
-                var preAttachmentString = "{\"Attachments\":[";
-                var postAttachmentString = "],";
+                const string preAttachmentString = "{\"Attachments\":[";
+                const string postAttachmentString = "],";
 
-                this.AttachmentsString = $"{preAttachmentString}{AttachmentsString}{postAttachmentString}";
+                AttachmentsString = $"{preAttachmentString}{AttachmentsString}{postAttachmentString}";
             }
             else
             {
-                this.AttachmentsString = "{";
+                AttachmentsString = "{";
             }
 
-            var preString = $"{this.AttachmentsString}\"Text\":\"<div class=\\\"forum-div\\\">";
+            var preString = $"{AttachmentsString}\"Text\":\"<div class=\\\"forum-div\\\">";
             var postString = "</div>\"}";
 
             if (isTopicText)
@@ -955,46 +878,46 @@ namespace TextileToTessaHTML
                 postString = "</div>";
             }
 
-            resultString = resultString.Insert(0, preString);
-            resultString += postString;
+            mainString = mainString.Insert(0, preString);
+            mainString += postString;
 
-            return resultString;
+            return mainString;
         }
 
         /// <summary>
         /// Обработка ссылок.
         /// </summary>
-        /// <param name="mainString"></param>
-        /// <returns></returns>
-        private string ParsingHttpLink(string mainString, bool isTopicText)
+        /// <param name="mainString">Строка для преобразования.</param>
+        /// <param name="isTopicText">Истина - сообщение топика.</param>
+        /// <returns>Преобразованная строка.</returns>
+        private static string ParsingHttpLink(string mainString, bool isTopicText)
         {
-            string resultString = mainString;
-
-            if (this.TryGetMathes(resultString, _httpLink, out MatchCollection matches))
+            if (!TryGetMatсhes(mainString, _httpLink, out MatchCollection matches))
             {
-                foreach (Match match in matches)
-                {
-                    var matchValue = match.Value.Remove(match.Value.Length - 1, 1);
-                    var groupValue = match.Groups[1].Value.Replace("&", "&amp;");
-                    resultString = resultString.Replace(matchValue, this.GenerateLinkSection(groupValue, isTopicText));
-                }
+                return mainString;
             }
 
-            return resultString;
+            foreach (Match match in matches)
+            {
+                var matchValue = match.Value.Remove(match.Value.Length - 1, 1);
+                var groupValue = match.Groups[1].Value.Replace("&", "&amp;");
+                mainString = mainString.Replace(matchValue, GenerateLinkSection(groupValue, isTopicText));
+            }
+
+            return mainString;
         }
 
         /// <summary>
         /// Генерирование разметки для ссылки.
         /// </summary>
-        /// <param name="link"></param>
-        /// <returns></returns>
-        private string GenerateLinkSection(string link, bool isTopicText)
+        /// <param name="link">Ссылка.</param>
+        /// <param name="isTopicText">Истина - сообщение топика.</param>
+        /// <returns>Строка разметки ссылки.</returns>
+        private static string GenerateLinkSection(string link, bool isTopicText)
         {
-            if (!isTopicText)
-            {
-                return $"</span><a data-custom-href=\\\"{link}\\\" href=\\\"{link}\\\" class=\\\"forum-url\\\"><span>{link}</span></a><span>";
-            }
-            return $"</span><a data-custom-href=\"{link}\" href=\"{link}\" class=\"forum-url\"><span>{link}</span></a><span>";
+            return !isTopicText 
+                ? $"</span><a data-custom-href=\\\"{link}\\\" href=\\\"{link}\\\" class=\\\"forum-url\\\"><span>{link}</span></a><span>" 
+                : $"</span><a data-custom-href=\"{link}\" href=\"{link}\" class=\"forum-url\"><span>{link}</span></a><span>";
         }
 
         /// <summary>
@@ -1002,14 +925,12 @@ namespace TextileToTessaHTML
         /// </summary>
         /// <param name="mainString"></param>
         /// <returns></returns>
-        private string ParseCitationText(string mainString)
+        private static string ParseCitationText(string mainString)
         {
-            string resultString = mainString;
-            
             // чтобы внутри цитаты не парсился тег <a>.
-            resultString = resultString.Replace(":", "&#58;");
+            mainString = mainString.Replace(":", "&#58;");
 
-            return resultString;
+            return mainString;
         }
 
         #endregion
